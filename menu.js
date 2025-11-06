@@ -251,7 +251,7 @@ function openTabs(count) {
     <button class="btn" id="btn-clicker">Auto Clicker</button>
     <button class="btn" id="btn-ads">Remove all ads</button>
     <button class="btn" id="btn-dvd">A DVD Bounces around</button>
-    <button class="btn" id="btn-tab">Tab Opener<input id="tab-count" placeholder="How many tabs do you want to open?"></input></button>
+    <button class="btn" id="btn-tab">Tab Opener </button><input id="tab-count" placeholder="How many tabs do you want to open?"></input>
     <button class="btn" id="btn-scroll">Scroll to top</button>
     <button class="btn" id="btn-dark">Toggle dark</button>
   `;
