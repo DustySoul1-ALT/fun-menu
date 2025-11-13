@@ -152,15 +152,52 @@ function openTabs(count) {
     window.open("about:blank", "_blank");
   }
 }
-function pageMarker(){function e(){g.width=innerWidth,g.height=innerHeight}function l(){b=!1}if(window.__pageDraw)window.__pageDraw.toggle();else{let t=!1,n=!1,o=0,i=0,d="#ff0000",r=3;const g=document.createElement("canvas"),a=(g.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;z-index:999999;pointer-events:none;",g.getContext("2d")),p=(e(),window.addEventListener("resize",e),document.body.appendChild(g),g.addEventListener("mousedown",function(e){t&&(n=!0,[o,i]=[e.clientX,e.clientY])}),g.addEventListener("mousemove",function(e){n&&t&&(a.lineWidth=r,a.lineCap="round",a.strokeStyle=d,a.beginPath(),a.moveTo(o,i),a.lineTo(e.clientX,e.clientY),a.stroke(),[o,i]=[e.clientX,e.clientY])}),g.addEventListener("mouseup",l),g.addEventListener("mouseleave",l),document.createElement("div"));p.innerHTML=`
+function pageMarker(){
+  if(window.__pageDraw){window.__pageDraw.toggle();return;}
+  let active=false, drawing=false, lastX=0,lastY=0,color="#ff0000",size=3;
+  const cvs=document.createElement("canvas");
+  cvs.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;z-index:999999;pointer-events:none;";
+  const ctx=cvs.getContext("2d");
+  function resize(){cvs.width=innerWidth;cvs.height=innerHeight;}
+  resize(); window.addEventListener("resize",resize);
+  document.body.appendChild(cvs);
+
+  function start(e){if(!active)return;drawing=true;[lastX,lastY]=[e.clientX,e.clientY];}
+  function move(e){if(!drawing||!active)return;ctx.lineWidth=size;ctx.lineCap="round";ctx.strokeStyle=color;
+    ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(e.clientX,e.clientY);ctx.stroke();
+    [lastX,lastY]=[e.clientX,e.clientY];
+  }
+  function end(){drawing=false;}
+  cvs.addEventListener("mousedown",start);
+  cvs.addEventListener("mousemove",move);
+  cvs.addEventListener("mouseup",end);
+  cvs.addEventListener("mouseleave",end);
+
+  // Simple toolbar
+  const bar=document.createElement("div");
+  bar.innerHTML=`
     <button id="pd-toggle">🖊️</button>
     <input type="color" id="pd-color" value="#ff0000">
     <input type="range" id="pd-size" min="1" max="20" value="3">
     <button id="pd-clear">🧹</button>
     <button id="pd-exit">❌</button>
-  `,Object.assign(p.style,{position:"fixed",bottom:"10px",left:"50%",transform:"translateX(-50%)",background:"#222",padding:"6px 10px",borderRadius:"8px",zIndex:1e6,display:"flex",gap:"6px"}),document.body.appendChild(p),p.querySelector("#pd-toggle").onclick=()=>{t=!t,g.style.pointerEvents=t?"auto":"none"},p.querySelector("#pd-color").oninput=e=>d=e.target.value,p.querySelector("#pd-size").oninput=e=>r=+e.target.value,p.querySelector("#pd-clear").onclick=()=>a.clearRect(0,0,g.width,g.height),p.querySelector("#pd-exit").onclick=()=>{window.removeEventListener("resize",e),g.remove(),p.remove(),delete window.__pageDraw},window.__pageDraw={toggle:()=>{t=!t,g.style.pointerEvents=t?"auto":"none"}}}}
+  `;
+  Object.assign(bar.style,{position:"fixed",bottom:"10px",left:"50%",transform:"translateX(-50%)",
+    background:"#222",padding:"6px 10px",borderRadius:"8px",zIndex:1000000,display:"flex",gap:"6px"});
+  document.body.appendChild(bar);
 
+  bar.querySelector("#pd-toggle").onclick=()=>{active=!active;cvs.style.pointerEvents=active?"auto":"none";};
+  bar.querySelector("#pd-color").oninput=e=>color=e.target.value;
+  bar.querySelector("#pd-size").oninput=e=>size=+e.target.value;
+  bar.querySelector("#pd-clear").onclick=()=>ctx.clearRect(0,0,cvs.width,cvs.height);
+  bar.querySelector("#pd-exit").onclick=()=>{
+    window.removeEventListener("resize",resize);
+    cvs.remove();bar.remove();delete window.__pageDraw;
+  };
 
+  window.__pageDraw={toggle:()=>{active=!active;cvs.style.pointerEvents=active?"auto":"none";}};
+  console.log("Drawing tool ready: click pen 🖊️ to draw, clear 🧹 to wipe, ❌ to exit.");
+}
 (function createFloatingMenu() {
   // If the menu already exists, toggle visibility instead of creating again
   const ID = 'Menu-M.M.';
