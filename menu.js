@@ -153,50 +153,96 @@ function openTabs(count) {
   }
 }
 function pageMarker(){
-  if(window.__pageDraw){window.__pageDraw.toggle();return;}
-  let active=false, drawing=false, lastX=0,lastY=0,color="#ff0000",size=3;
+  if(window.__pageMarker){window.__pageMarker.toggle();return;}
+
+  let active=false, drawing=false, lastX=0, lastY=0, color="#ff0000", size=3, eraser=false;
+  const undoStack=[], maxUndo=20;
+
   const cvs=document.createElement("canvas");
   cvs.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;z-index:999999;pointer-events:none;";
   const ctx=cvs.getContext("2d");
+
   function resize(){cvs.width=innerWidth;cvs.height=innerHeight;}
   resize(); window.addEventListener("resize",resize);
   document.body.appendChild(cvs);
 
-  function start(e){if(!active)return;drawing=true;[lastX,lastY]=[e.clientX,e.clientY];}
-  function move(e){if(!drawing||!active)return;ctx.lineWidth=size;ctx.lineCap="round";ctx.strokeStyle=color;
-    ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(e.clientX,e.clientY);ctx.stroke();
+  function saveState(){
+    if(undoStack.length>=maxUndo) undoStack.shift();
+    undoStack.push(ctx.getImageData(0,0,cvs.width,cvs.height));
+  }
+
+  function start(e){
+    if(!active) return;
+    drawing=true;
+    [lastX,lastY]=[e.clientX,e.clientY];
+    saveState();
+  }
+
+  function move(e){
+    if(!drawing||!active) return;
+    ctx.lineWidth=size;
+    ctx.lineCap="round";
+    ctx.lineJoin="round";
+    ctx.strokeStyle = color;
+    ctx.globalCompositeOperation = eraser ? "destination-out" : "source-over";
+
+    ctx.beginPath();
+    ctx.moveTo(lastX,lastY);
+    ctx.lineTo(e.clientX,e.clientY);
+    ctx.stroke();
     [lastX,lastY]=[e.clientX,e.clientY];
   }
+
   function end(){drawing=false;}
   cvs.addEventListener("mousedown",start);
   cvs.addEventListener("mousemove",move);
   cvs.addEventListener("mouseup",end);
   cvs.addEventListener("mouseleave",end);
 
-  // Simple toolbar
   const bar=document.createElement("div");
   bar.innerHTML=`
-    <button id="pd-toggle">🖊️</button>
-    <input type="color" id="pd-color" value="#ff0000">
-    <input type="range" id="pd-size" min="1" max="20" value="3">
-    <button id="pd-clear">🧹</button>
-    <button id="pd-exit">❌</button>
+    <button id="pm-toggle">🖊️</button>
+    <button id="pm-eraser">🩹</button>
+    <input type="color" id="pm-color" value="#ff0000">
+    <input type="range" id="pm-size" min="1" max="20" value="3">
+    <button id="pm-undo">↩️</button>
+    <button id="pm-clear">🧹</button>
+    <button id="pm-exit">❌</button>
   `;
   Object.assign(bar.style,{position:"fixed",bottom:"10px",left:"50%",transform:"translateX(-50%)",
     background:"#222",padding:"6px 10px",borderRadius:"8px",zIndex:1000000,display:"flex",gap:"6px"});
   document.body.appendChild(bar);
 
-  bar.querySelector("#pd-toggle").onclick=()=>{active=!active;cvs.style.pointerEvents=active?"auto":"none";};
-  bar.querySelector("#pd-color").oninput=e=>color=e.target.value;
-  bar.querySelector("#pd-size").oninput=e=>size=+e.target.value;
-  bar.querySelector("#pd-clear").onclick=()=>ctx.clearRect(0,0,cvs.width,cvs.height);
-  bar.querySelector("#pd-exit").onclick=()=>{
+  bar.querySelector("#pm-toggle").onclick=()=>{active=!active;cvs.style.pointerEvents=active?"auto":"none";};
+  bar.querySelector("#pm-eraser").onclick=()=>{eraser=!eraser; bar.querySelector("#pm-eraser").style.background = eraser ? "#555" : "";};
+  bar.querySelector("#pm-color").oninput=e=>color=e.target.value;
+  bar.querySelector("#pm-size").oninput=e=>size=+e.target.value;
+  bar.querySelector("#pm-clear").onclick=()=>ctx.clearRect(0,0,cvs.width,cvs.height);
+  bar.querySelector("#pm-undo").onclick=()=>{
+    if(undoStack.length){
+      let img=undoStack.pop();
+      ctx.putImageData(img,0,0);
+    }
+  };
+  bar.querySelector("#pm-exit").onclick=()=>{
     window.removeEventListener("resize",resize);
-    cvs.remove();bar.remove();delete window.__pageDraw;
+    document.removeEventListener("keydown",keyHandler);
+    cvs.remove();bar.remove();delete window.__pageMarker;
   };
 
-  window.__pageDraw={toggle:()=>{active=!active;cvs.style.pointerEvents=active?"auto":"none";}};
-  console.log("Drawing tool ready: click pen 🖊️ to draw, clear 🧹 to wipe, ❌ to exit.");
+  function keyHandler(e){
+    if(e.ctrlKey && e.key==="z") bar.querySelector("#pm-undo").click();
+    if(e.key.toLowerCase()==="e") bar.querySelector("#pm-eraser").click();
+    if(e.key.toLowerCase()==="c") bar.querySelector("#pm-clear").click();
+    if(e.key.toLowerCase()==="p") bar.querySelector("#pm-toggle").click();
+  }
+  document.addEventListener("keydown",keyHandler);
+
+  window.__pageMarker={
+    toggle:()=>{active=!active;cvs.style.pointerEvents=active?"auto":"none";}
+  };
+
+  console.log("PageMarker ready: call pageMarker() to start. Keyboard shortcuts: P toggle, E eraser, C clear, Ctrl+Z undo.");
 }
 (function createFloatingMenu() {
   // If the menu already exists, toggle visibility instead of creating again
