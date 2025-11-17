@@ -156,9 +156,8 @@
     Object.assign(dvd.style, { position:'fixed', left:'0px', top:'0px', height:'60px', width:'136px', backgroundRepeat:'no-repeat', backgroundSize:'75px', backgroundPosition:'center', backgroundColor:'#f80', zIndex:2147483647, pointerEvents:'none', maskImage:'url(https://upload.wikimedia.org/wikipedia/commons/9/9b/DVD_logo.svg)', WebkitMaskImage:'url(https://upload.wikimedia.org/wikipedia/commons/9/9b/DVD_logo.svg)' });
     document.body.appendChild(dvd);
 
-    let x = Math.floor(Math.random()*(W-136)), y = Math.floor(Math.random()*(H-60)), dirX = 1, dirY = 1, steps=0;
+    let x = Math.floor(Math.random()*(W-136)), y = Math.floor(Math.random()*(H-60)), dirX = 1, dirY = 1, prevColorIndex=-1;
     const speed = Math.max(2, Math.min(W,H)/200), palette=["#ff8800","#e124ff","#6a19ff","#ff2188"], dvdWidth=136, dvdHeight=60; 
-    let prevColorIndex=-1;
 
     function getNewColor(){ let idx=Math.floor(Math.random()*palette.length); while(idx===prevColorIndex) idx=Math.floor(Math.random()*palette.length); prevColorIndex=idx; return palette[idx]; }
 
@@ -203,7 +202,7 @@
     };
   }
 
-  function pageMarker(){ /* pageMarker code omitted for brevity but same as your version including exit button fixed */ }
+  function pageMarker(){ /* add your pageMarker code here */ }
 
   (function createFloatingMenu(){
     const ID='Menu-M.M.'; const existing=document.getElementById(ID);
@@ -247,18 +246,27 @@
 
     shadow.querySelector('.close-x').onclick=()=>host.remove();
 
+    // Drag functionality
     (function enableDrag(){
-      let dragging=false,startX=0,startY=0,startRight=16,startBottom=16;
-      wrapper.addEventListener('pointerdown',e=>{
-        const path=e.composedPath();
-        if(path.includes($('.close-x'))) return;
-        dragging=true; startX=e.clientX; startY=e.clientY;
-        const rect=host.getBoundingClientRect();
-        startRight=window.innerWidth-rect.right; startBottom=window.innerHeight-rect.bottom;
+      let dragging=false, startX=0, startY=0, startRight=16, startBottom=16;
+      wrapper.addEventListener('pointerdown', e => {
+        if(e.target.closest('.close-x')) return;
+        dragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = host.getBoundingClientRect();
+        startRight = window.innerWidth - rect.right;
+        startBottom = window.innerHeight - rect.bottom;
         wrapper.setPointerCapture(e.pointerId);
       });
-      wrapper.addEventListener('pointermove',e=>{ if(!dragging) return; host.style.right=Math.max(0,window.innerWidth-e.clientX+startX-startRight)+'px'; host.style.bottom=Math.max(0,window.innerHeight-e.clientY+startY-startBottom)+'px'; });
-      wrapper.addEventListener('pointerup',e=>dragging=false);
+
+      wrapper.addEventListener('pointermove', e => {
+        if(!dragging) return;
+        host.style.right = Math.max(0, window.innerWidth - e.clientX + startX - startRight) + 'px';
+        host.style.bottom = Math.max(0, window.innerHeight - e.clientY + startY - startBottom) + 'px';
+      });
+
+      wrapper.addEventListener('pointerup', e => { dragging = false; });
     })();
   })();
 })();
