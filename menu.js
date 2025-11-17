@@ -2,7 +2,44 @@ let autoClickerSt = false;
 let adBGoneSt = false;
 let dvdLogoSt = false;
 let pageMarkerSt = false;
+function lunarPrompt(options = {}) {
+    return new Promise(resolve => {
+        if (document.getElementById('lunarPromptGUI')) return resolve(null);
+        const gui = document.createElement('div');
+        gui.id = 'lunarPromptGUI';
+        gui.style = `
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1e1e2f;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.7);
+            font-family: 'Arial', sans-serif;
+            color: #fff;
+            z-index: 999999;
+            width: 300px;
+            text-align: center;
+        `;
+        gui.innerHTML = `
+            <h3 style="margin-top:0; margin-bottom:10px;">${options.title || 'Enter Value'}</h3>
+            <input id="lunarPromptInput" type="text" placeholder="${options.placeholder || ''}" 
+                style="width:100%; padding:8px; border-radius:6px; border:none; margin-bottom:10px; font-size:14px;">
+            <br>
+            <button id="lunarPromptBtn" 
+                style="padding:8px 15px; border:none; border-radius:6px; background:#4e4eff; color:#fff; cursor:pointer;">
+                OK
+            </button>
+        `;
+        document.body.appendChild(gui);
 
+        document.getElementById('lunarPromptBtn').onclick = () => {
+            const value = document.getElementById('lunarPromptInput').value;
+            gui.remove();
+            resolve(value);
+        };
+    });
+}
 function autoClicker() {
     if (window.__spamClickerActive) {
         window.__spamClickerActive = false;
@@ -234,6 +271,59 @@ function openTabs(count) {
     window.open("about:blank", "_blank");
   }
 }
+function cloak() {
+    if (document.getElementById('cloakGUI')) return;
+
+    // Create GUI
+    const gui = document.createElement('div');
+    gui.id = 'cloakGUI';
+    gui.style = `
+        position: fixed;
+        top: 20px; right: 20px;
+        background: #222; color: #fff;
+        padding: 15px; border-radius: 8px;
+        font-family: sans-serif; z-index: 999999;
+        width: 250px;
+    `;
+    gui.innerHTML = `
+        <h4 style="margin:0 0 10px 0;">Tab Cloak</h4>
+        <label>Title: <input id="cloakTitleInput" placeholder="New tab title" style="width:100%"></label><br><br>
+        <label>Icon: 
+            <select id="cloakIconSelect" style="width:100%">
+                <option value="">Custom URL</option>
+                <option value="https://www.google.com/favicon.ico">Google</option>
+                <option value="https://www.microsoft.com/favicon.ico">Microsoft</option>
+                <option value="https://github.githubassets.com/favicons/favicon.png">GitHub</option>
+            </select>
+        </label>
+        <input id="cloakIconInput" placeholder="Custom icon URL" style="width:100%; margin-top:5px;"><br><br>
+        <button id="cloakApplyBtn" style="width:100%; padding:5px; cursor:pointer;">Apply</button>
+    `;
+    document.body.appendChild(gui);
+
+    // Apply changes and remove GUI
+    document.getElementById('cloakApplyBtn').onclick = () => {
+        const title = document.getElementById('cloakTitleInput').value;
+        const iconSelect = document.getElementById('cloakIconSelect').value;
+        const iconInput = document.getElementById('cloakIconInput').value;
+
+        if (title) document.title = title;
+
+        const iconURL = iconInput || iconSelect;
+        if (iconURL) {
+            let link = document.querySelector("link[rel*='icon']");
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = 'icon';
+                document.head.appendChild(link);
+            }
+            link.type = 'image/x-icon';
+            link.href = iconURL;
+        }
+
+        gui.remove(); // remove GUI after applying
+    };
+}
 function pageMarker() {
   if (window.__pageMarker) { window.__pageMarker.toggle(); return; }
 
@@ -361,7 +451,7 @@ function pageMarker() {
 
   window.__pageMarker = { toggle: () => { active = !active; cvs.style.pointerEvents = active ? "auto" : "none"; } };
 }
-(function createFloatingMenu() {
+(async function createFloatingMenu() {
   const ID = 'Menu-M.M.';
   const existing = document.getElementById(ID);
   if (existing) { existing.style.display = existing.style.display === 'none' ? 'block' : 'none'; return; }
@@ -436,6 +526,7 @@ function pageMarker() {
     <div class="header"><div class="title">Quick Menu</div><button class="close-x" title="Close">✕</button></div>
     <button class="btn" id="btn-clicker">Auto Clicker</button>
     <button class="btn" id="btn-ads">Remove all ads</button>
+    <button class="btn" id="btn-cloak">Cloaker</button>
     <button class="btn" id="btn-dvd">A DVD Bounces around</button>
     <button class="btn" id="btn-tab">Tab Opener</button>
     <button class="btn" id="btn-marker">Draw on the Page</button>
@@ -452,7 +543,15 @@ function pageMarker() {
 
   $('#btn-clicker').onclick = () => { if (!window.autoClickerSt) { window.autoClickerSt = true; autoClicker(); } };
   $('#btn-marker').onclick = () => { if (!window.pageMarkerSt) { window.pageMarkerSt = true; pageMarker(); } };
-  $('#btn-tab').onclick = () => openTabs(prompt('How many tabs do you want to open?'));
+  $('#btn-tab').onclick = async () => {
+    const count = await lunarPrompt({ 
+      title: 'How many tabs do you want to open?', 
+      placeholder: 'Type here...' 
+    });
+    if (!count) return; // user cancelled or empty input
+    openTabs(Number(count)); // make sure you pass a number
+  }
+  $('btn-cloak').onclick = () => cloak()
   $('#btn-dvd').onclick = () => { if (!window.dvdLogoSt) { window.dvdLogoSt = true; dvdLogo(); } };
   $('#btn-ads').onclick = () => { if (!window.adBGoneSt) { window.adBGoneSt = true; adBGone(); } };
   $('#btn-scroll').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
