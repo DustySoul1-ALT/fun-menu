@@ -3,77 +3,167 @@ let adBGoneSt = false;
 let dvdLogoSt = false;
 let pageMarkerSt = false;
 
-function autoClicker() {if(window.__spamClickerActive){window.__spamClickerActive=false;clearTimeout(window.__spamClickerTimeout);window.removeEventListener('mousemove',window.__spamClickerMouseMove,true);window.removeEventListener('keydown',window.__spamClickerKey);if(window.__spamClickerUI)window.__spamClickerUI.remove();return;}window.__spamClickerActive=true;window.__spamClickerMouse={x:0,y:0};window.__spamClickerMouseMove=e=>window.__spamClickerMouse={x:e.clientX,y:e.clientY};window.addEventListener('mousemove',window.__spamClickerMouseMove,true);let interval=5,paused=false,batch=5;function spam(){if(!paused){for(let i=0;i<batch;i++){const el=document.elementFromPoint(window.__spamClickerMouse.x,window.__spamClickerMouse.y);if(el)el.click();}}if(window.__spamClickerActive)window.__spamClickerTimeout=setTimeout(spam,interval);}spam();const ui=document.createElement('div');Object.assign(ui.style,{position:'fixed',right:'12px',bottom:'12px',zIndex:2147483647,padding:'6px 10px',background:'rgba(0,0,0,0.75)',color:'#fff',fontFamily:'system-ui',fontSize:'12px',borderRadius:'8px'});ui.textContent='Click spamming • S pause/resume • + / - speed • Esc stop';document.body.appendChild(ui);window.__spamClickerUI=ui;window.__spamClickerKey=e=>{if(e.key==='Escape'){autoClickerSt = false;window.__spamClickerActive=false;clearTimeout(window.__spamClickerTimeout);window.removeEventListener('mousemove',window.__spamClickerMouseMove,true);window.removeEventListener('keydown',window.__spamClickerKey);ui.remove();return;}if(e.key.toLowerCase()==='s'){paused=!paused;ui.textContent=paused?'Paused • S resume • Esc stop':'Click spamming • S pause/resume • + / - speed • Esc stop';}if(e.key==='+'||e.key==='='){interval=Math.max(5,interval-1);}if(e.key==='-'){interval=Math.min(2000,interval+1);}};window.addEventListener('keydown',window.__spamClickerKey);}
-function adBGone() {
-  const selectors = [
-    '#sidebar-wrap','#advert','#xrail','#middle-article-advert-container','#sponsored-recommendations',
-    '#around-the-web','#taboola-content','.ad','.advertisement','.GoogleActiveViewClass','.ad-slot',
-    '.ad-banner','.ad-anchored','.trc_rbox_outer','.OUTBRAIN','iframe','video','amp-ad','ins.adsbygoogle',
-    'div[id^="google_ads_iframe"]'
-  ];
-
-  const removeAds = () => {
-    selectors.forEach(sel => {
-      document.querySelectorAll(sel).forEach(el => el && el.remove());
-    });
-  };
-
-  removeAds(); // initial cleanup
-
-  // Run every 1.5 seconds to catch new ads
-  setInterval(removeAds, 1500);
-
-  // Observe DOM mutations for dynamic content
-  if (window.MutationObserver) {
-    new MutationObserver(removeAds).observe(document.documentElement || document.body, {
-      childList: true,
-      subtree: true
-    });
-  }
-
-  // Hook history changes to remove ads on navigation
-  let lastUrl = location.href;
-  const wrapHistory = (obj, method) => {
-    const orig = obj[method];
-    obj[method] = function() {
-      const result = orig.apply(this, arguments);
-      setTimeout(removeAds, 60);
-      return result;
-    };
-  };
-  wrapHistory(history, 'pushState');
-  wrapHistory(history, 'replaceState');
-
-  window.addEventListener('popstate', () => setTimeout(removeAds, 60));
-  setInterval(() => {
-    if (location.href !== lastUrl) {
-      lastUrl = location.href;
-      removeAds();
+function autoClicker() {
+    if (window.__spamClickerActive) {
+        window.__spamClickerActive = false;
+        window.__spamClickerUI?.remove();
+        window.removeEventListener("mousemove", window.__spamClickerMouseMove, true);
+        window.removeEventListener("keydown", window.__spamClickerKey);
+        return;
     }
-  }, 300);
 
-  // Add draggable button if it doesn’t exist
-  if (!document.getElementById('adBGoneBtn')) {
-    const btn = document.createElement('button');
-    btn.id = 'adBGoneBtn';
-    btn.innerText = '💥 Ad-B-Gone';
-    Object.assign(btn.style, {
-      position: 'fixed',
-      top: '10px',
-      right: '10px',
-      zIndex: 9999,
-      padding: '8px',
-      background: 'red',
-      color: 'white',
-      border: 'none',
-      borderRadius: '5px',
-      cursor: 'pointer'
+    window.__spamClickerActive = true;
+    window.__spamClickerMouse = { x: 0, y: 0 };
+    window.__spamClickerMouseMove = e => window.__spamClickerMouse = { x: e.clientX, y: e.clientY };
+    window.addEventListener("mousemove", window.__spamClickerMouseMove, true);
+
+    let batch = 5, paused = false;
+
+    const ui = document.createElement("div");
+    Object.assign(ui.style, {
+        position: "fixed",
+        right: "12px",
+        bottom: "12px",
+        zIndex: 2147483647,
+        padding: "6px 10px",
+        background: "rgba(0,0,0,0.75)",
+        color: "#fff",
+        fontFamily: "system-ui",
+        fontSize: "12px",
+        borderRadius: "8px"
     });
-    btn.onclick = removeAds;
-    document.body.appendChild(btn);
-  }
+    ui.textContent = "Click spamming • S pause/resume • + / - speed • Esc stop";
+    document.body.appendChild(ui);
+    window.__spamClickerUI = ui;
 
-  console.log('Ad-B-Gone helper ready');
+    window.__spamClickerKey = e => {
+        if (e.key === "Escape") {
+            window.__spamClickerActive = false;
+            ui.remove();
+            window.removeEventListener("mousemove", window.__spamClickerMouseMove, true);
+            window.removeEventListener("keydown", window.__spamClickerKey);
+            return;
+        }
+        if (e.key.toLowerCase() === "s") {
+            paused = !paused;
+            ui.textContent = paused
+                ? "Paused • S resume • Esc stop"
+                : "Click spamming • S pause/resume • + / - speed • Esc stop";
+        }
+        if (e.key === "+" || e.key === "=") batch = Math.min(batch + 1, 20);
+        if (e.key === "-") batch = Math.max(batch - 1, 1);
+    };
+    window.addEventListener("keydown", window.__spamClickerKey);
+
+    function spam() {
+        if (!paused && window.__spamClickerActive) {
+            const el = document.elementFromPoint(window.__spamClickerMouse.x, window.__spamClickerMouse.y);
+            if (el) for (let i = 0; i < batch; i++) el.click();
+        }
+        if (window.__spamClickerActive) requestAnimationFrame(spam);
+    }
+
+    requestAnimationFrame(spam);
+}
+function adBGone() {
+    const selectors = [
+        '#sidebar-wrap','#advert','#xrail','#middle-article-advert-container','#sponsored-recommendations',
+        '#around-the-web','#taboola-content','.ad','.advertisement','.GoogleActiveViewClass','.ad-slot',
+        '.ad-banner','.ad-anchored','.trc_rbox_outer','.OUTBRAIN','iframe','video','amp-ad','ins.adsbygoogle',
+        'div[id^="google_ads_iframe"]'
+    ];
+
+    const removeAds = () => {
+        selectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => el?.remove());
+        });
+    };
+
+    removeAds(); // initial cleanup
+    setInterval(removeAds, 1500);
+
+    if (window.MutationObserver) {
+        new MutationObserver(removeAds).observe(document.documentElement || document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    let lastUrl = location.href;
+
+    const wrapHistory = (obj, method) => {
+        const orig = obj[method];
+        obj[method] = function() {
+            const result = orig.apply(this, arguments);
+            setTimeout(removeAds, 60);
+            return result;
+        };
+    };
+    wrapHistory(history, 'pushState');
+    wrapHistory(history, 'replaceState');
+
+    window.addEventListener('popstate', () => setTimeout(removeAds, 60));
+    setInterval(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            removeAds();
+        }
+    }, 300);
+
+    // Add Lunar Client style button
+    if (!document.getElementById('adBGoneBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'adBGoneBtn';
+        btn.innerText = '💥 Ad-B-Gone';
+
+        Object.assign(btn.style, {
+            position: 'fixed',
+            top: '10px',
+            right: '10px',
+            zIndex: 9999,
+            padding: '10px 16px',
+            background: '#1a1a1a',
+            color: '#00ffff',
+            border: '2px solid #00ffff',
+            borderRadius: '8px',
+            cursor: 'grab',
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 'bold',
+            boxShadow: '0 0 8px #00ffff, 0 0 16px #00ffff33',
+            transition: 'all 0.2s ease'
+        });
+
+        // Hover glow only (no scaling)
+        btn.onmouseover = () => {
+            btn.style.boxShadow = '0 0 12px #00ffff, 0 0 24px #00ffff66';
+        };
+        btn.onmouseout = () => {
+            btn.style.boxShadow = '0 0 8px #00ffff, 0 0 16px #00ffff33';
+        };
+
+        btn.onclick = removeAds;
+
+        // Draggable
+        let isDragging = false, offsetX = 0, offsetY = 0;
+        btn.onmousedown = e => {
+            isDragging = true;
+            offsetX = e.clientX - btn.offsetLeft;
+            offsetY = e.clientY - btn.offsetTop;
+            btn.style.cursor = 'grabbing';
+        };
+        document.onmousemove = e => {
+            if (isDragging) {
+                btn.style.left = e.clientX - offsetX + 'px';
+                btn.style.top = e.clientY - offsetY + 'px';
+            }
+        };
+        document.onmouseup = () => {
+            isDragging = false;
+            btn.style.cursor = 'grab';
+        };
+
+        document.body.appendChild(btn);
+    }
 }
 function dvdLogo() {
   // helper for LCM
@@ -92,13 +182,6 @@ function dvdLogo() {
     position:fixed;left:0;top:0;height:60px;width:136px;mask:url(https://upload.wikimedia.org/wikipedia/commons/9/9b/DVD_logo.svg);-webkit-mask:url(https://upload.wikimedia.org/wikipedia/commons/9/9b/DVD_logo.svg);background-repeat:no-repeat;background-size:75px;background-position:center;background-color:#f80;z-index:9999999999;
   `;
   document.body.insertBefore(dvd, document.body.firstChild);
-
-  // create counter
-  const counter = document.createElement("div");
-  counter.style.cssText = `
-    position:fixed;right:10px;top:10px;padding:4px 8px;background:rgb(0 0 0 / .6);color:#fff;font:14px/1 system-ui,Arial;border-radius:6px;z-index:1000000;pointer-events:none;
-  `;
-  document.body.appendChild(counter);
 
   // initial positions & settings
   let x = Math.floor(Math.random() * (W - 100));
@@ -131,7 +214,6 @@ function dvdLogo() {
 
     steps++;
     const remaining = d - steps;
-    counter.textContent = "1 to hide | Esc to remove";
     if (remaining <= 0) steps = 0;
 
     window.requestAnimationFrame(animate);
@@ -143,7 +225,7 @@ function dvdLogo() {
   document.addEventListener("keydown", e => {
     if (!dvd) return;
     if (e.key === "1") dvd.style.display = dvd.style.display === "none" ? "block" : "none";
-    if (e.key === "Escape") { dvd.remove(); counter.remove(); dvdLogoSt = false; }
+    if (e.key === "Escape") { dvd.remove(); dvdLogoSt = false; }
   });
 }
 function openTabs(count) {
@@ -152,55 +234,84 @@ function openTabs(count) {
     window.open("about:blank", "_blank");
   }
 }
-function pageMarker(){
-  if(window.__pageMarker){window.__pageMarker.toggle();return;}
+function pageMarker() {
+  if (window.__pageMarker) { window.__pageMarker.toggle(); return; }
 
-  let active=false, drawing=false, lastX=0, lastY=0, color="#ff0000", size=3, eraser=false;
-  const undoStack=[], maxUndo=20;
+  let active = false, drawing = false, lastX = 0, lastY = 0, color = "#ff0000", size = 3, eraser = false;
+  const undoStack = [], maxUndo = 20;
 
-  const cvs=document.createElement("canvas");
-  cvs.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;z-index:999999;pointer-events:none;";
-  const ctx=cvs.getContext("2d");
+  const cvs = document.createElement("canvas");
+  cvs.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:999999;pointer-events:none;";
+  const ctx = cvs.getContext("2d");
 
-  function resize(){cvs.width=innerWidth;cvs.height=innerHeight;}
-  resize(); window.addEventListener("resize",resize);
+  function resize() { cvs.width = innerWidth; cvs.height = innerHeight; }
+  resize();
+  window.addEventListener("resize", resize);
   document.body.appendChild(cvs);
 
-  function saveState(){
-    if(undoStack.length>=maxUndo) undoStack.shift();
-    undoStack.push(ctx.getImageData(0,0,cvs.width,cvs.height));
+  function saveState() {
+    if (undoStack.length >= maxUndo) undoStack.shift();
+    undoStack.push(ctx.getImageData(0, 0, cvs.width, cvs.height));
   }
 
-  function start(e){
-    if(!active) return;
-    drawing=true;
-    [lastX,lastY]=[e.clientX,e.clientY];
+  function start(e) {
+    if (!active) return;
+    drawing = true;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    [lastX, lastY] = [x, y];
     saveState();
   }
 
-  function move(e){
-    if(!drawing||!active) return;
-    ctx.lineWidth=size;
-    ctx.lineCap="round";
-    ctx.lineJoin="round";
-    ctx.strokeStyle = color;
-    ctx.globalCompositeOperation = eraser ? "destination-out" : "source-over";
+  function move(e) {
+    if (!drawing || !active) return;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
 
-    ctx.beginPath();
-    ctx.moveTo(lastX,lastY);
-    ctx.lineTo(e.clientX,e.clientY);
-    ctx.stroke();
-    [lastX,lastY]=[e.clientX,e.clientY];
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = size;
+
+    if (eraser) {
+      ctx.globalCompositeOperation = "destination-out";
+      const dx = x - lastX, dy = y - lastY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const steps = Math.ceil(dist / (size / 2));
+      for (let i = 0; i <= steps; i++) {
+        const cx = lastX + dx * (i / steps);
+        const cy = lastY + dy * (i / steps);
+        ctx.beginPath();
+        ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+
+    [lastX, lastY] = [x, y];
   }
 
-  function end(){drawing=false;}
-  cvs.addEventListener("mousedown",start);
-  cvs.addEventListener("mousemove",move);
-  cvs.addEventListener("mouseup",end);
-  cvs.addEventListener("mouseleave",end);
+  function end() { drawing = false; }
 
-  const bar=document.createElement("div");
-  bar.innerHTML=`
+  // mouse events
+  cvs.addEventListener("mousedown", start);
+  cvs.addEventListener("mousemove", move);
+  cvs.addEventListener("mouseup", end);
+  cvs.addEventListener("mouseleave", end);
+
+  // touch events
+  cvs.addEventListener("touchstart", start);
+  cvs.addEventListener("touchmove", move);
+  cvs.addEventListener("touchend", end);
+
+  // Lunar Client–style toolbar
+  const bar = document.createElement("div");
+  bar.innerHTML = `
     <button id="pm-toggle">🖊️</button>
     <button id="pm-eraser">🩹</button>
     <input type="color" id="pm-color" value="#ff0000">
@@ -209,173 +320,183 @@ function pageMarker(){
     <button id="pm-clear">🧹</button>
     <button id="pm-exit">❌</button>
   `;
-  Object.assign(bar.style,{position:"fixed",bottom:"10px",left:"50%",transform:"translateX(-50%)",
-    background:"#222",padding:"6px 10px",borderRadius:"8px",zIndex:1000000,display:"flex",gap:"6px"});
+  Object.assign(bar.style, {
+    position: "fixed",
+    bottom: "10px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "#1a1a1a",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    zIndex: 1000000,
+    display: "flex",
+    gap: "6px",
+    boxShadow: "0 0 10px #00ffff55",
+    cursor: "grab",
+    userSelect: "none"
+  });
   document.body.appendChild(bar);
 
-  bar.querySelector("#pm-toggle").onclick=()=>{active=!active;cvs.style.pointerEvents=active?"auto":"none";};
-  bar.querySelector("#pm-eraser").onclick=()=>{eraser=!eraser; bar.querySelector("#pm-eraser").style.background = eraser ? "#555" : "";};
-  bar.querySelector("#pm-color").oninput=e=>color=e.target.value;
-  bar.querySelector("#pm-size").oninput=e=>size=+e.target.value;
-  bar.querySelector("#pm-clear").onclick=()=>ctx.clearRect(0,0,cvs.width,cvs.height);
-  bar.querySelector("#pm-undo").onclick=()=>{
-    if(undoStack.length){
-      let img=undoStack.pop();
-      ctx.putImageData(img,0,0);
-    }
-  };
-  bar.querySelector("#pm-exit").onclick=()=>{
-    window.removeEventListener("resize",resize);
-    document.removeEventListener("keydown",keyHandler);
-    cvs.remove();bar.remove();delete window.__pageMarker;
-  };
+  // draggable toolbar
+  let isDragging = false, offsetX = 0, offsetY = 0;
+  bar.onmousedown = e => { isDragging = true; offsetX = e.clientX - bar.offsetLeft; offsetY = e.clientY - bar.offsetTop; bar.style.cursor = "grabbing"; };
+  document.onmousemove = e => { if (isDragging) { bar.style.left = e.clientX - offsetX + "px"; bar.style.top = e.clientY - offsetY + "px"; } };
+  document.onmouseup = () => { isDragging = false; bar.style.cursor = "grab"; };
 
-  function keyHandler(e){
-    if(e.ctrlKey && e.key==="z") bar.querySelector("#pm-undo").click();
-    if(e.key.toLowerCase()==="e") bar.querySelector("#pm-eraser").click();
-    if(e.key.toLowerCase()==="c") bar.querySelector("#pm-clear").click();
-    if(e.key.toLowerCase()==="p") bar.querySelector("#pm-toggle").click();
+  bar.querySelector("#pm-toggle").onclick = () => { active = !active; cvs.style.pointerEvents = active ? "auto" : "none"; };
+  bar.querySelector("#pm-eraser").onclick = () => { eraser = !eraser; bar.querySelector("#pm-eraser").style.background = eraser ? "#555" : ""; };
+  bar.querySelector("#pm-color").oninput = e => color = e.target.value;
+  bar.querySelector("#pm-size").oninput = e => size = +e.target.value;
+  bar.querySelector("#pm-clear").onclick = () => ctx.clearRect(0, 0, cvs.width, cvs.height);
+  bar.querySelector("#pm-undo").onclick = () => { if (undoStack.length) ctx.putImageData(undoStack.pop(), 0, 0); };
+  bar.querySelector("#pm-exit").onclick = () => { window.removeEventListener("resize", resize); document.removeEventListener("keydown", keyHandler); cvs.remove(); bar.remove(); delete window.__pageMarker; };
+
+  function keyHandler(e) {
+    if (e.ctrlKey && e.key === "z") bar.querySelector("#pm-undo").click();
+    if (e.key.toLowerCase() === "e") bar.querySelector("#pm-eraser").click();
+    if (e.key.toLowerCase() === "c") bar.querySelector("#pm-clear").click();
+    if (e.key.toLowerCase() === "p") bar.querySelector("#pm-toggle").click();
   }
-  document.addEventListener("keydown",keyHandler);
+  document.addEventListener("keydown", keyHandler);
 
-  window.__pageMarker={
-    toggle:()=>{active=!active;cvs.style.pointerEvents=active?"auto":"none";}
-  };
-
-  console.log("PageMarker ready: call pageMarker() to start. Keyboard shortcuts: P toggle, E eraser, C clear, Ctrl+Z undo.");
+  window.__pageMarker = { toggle: () => { active = !active; cvs.style.pointerEvents = active ? "auto" : "none"; } };
 }
 (function createFloatingMenu() {
-  // If the menu already exists, toggle visibility instead of creating again
   const ID = 'Menu-M.M.';
   const existing = document.getElementById(ID);
-  if (existing) {
-    existing.style.display = (existing.style.display === 'none') ? 'block' : 'none';
-    return;
-  }
+  if (existing) { existing.style.display = existing.style.display === 'none' ? 'block' : 'none'; return; }
 
-  // Host element to attach a shadow root (avoids page CSS collisions)
   const host = document.createElement('div');
   host.id = ID;
-  // Position fixed so it stays on screen
   Object.assign(host.style, {
     position: 'fixed',
     right: '16px',
     bottom: '16px',
-    zIndex: 2147483647, // as high as we can go
+    zIndex: 2147483647,
   });
   document.documentElement.appendChild(host);
 
   const shadow = host.attachShadow({ mode: 'open' });
 
-  // Basic styles for the menu (change sizes/colors here)
   const css = `
-    :host{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}.card{width:260px;background:rgb(255 255 255 / .96);color:#111;border-radius:12px;box-shadow:0 8px 30px rgb(0 0 0 / .25);padding:10px;backdrop-filter:blur(6px);border:1px solid rgb(0 0 0 / .06)}.header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.title{font-weight:600;font-size:14px}.btn{display:block;width:100%;padding:8px 10px;margin:6px 0;border-radius:8px;cursor:pointer;border:1px solid rgb(0 0 0 / .08);background:#f6f6f7;font-size:13px;text-align:left}.btn:active{transform:translateY(1px)}.small{font-size:12px;color:#555;margin-top:6px}.close-x{cursor:pointer;padding:4px 6px;border-radius:6px;background:#fff0;border:none;font-weight:700}
+    :host { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; }
+    .card {
+      width: 260px;
+      background: rgba(26,26,26,0.95);
+      color: #00ffff;
+      border-radius: 12px;
+      box-shadow: 0 0 12px #00ffff55;
+      padding: 10px;
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(0,255,255,0.2);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      cursor: grab;
+      user-select: none;
+    }
+    .title { font-weight: 600; font-size: 14px; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 8px 10px;
+      margin: 6px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid rgba(0,255,255,0.2);
+      background: #111;
+      font-size: 13px;
+      text-align: left;
+      color: #00ffff;
+      box-shadow: 0 0 6px #00ffff33;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { box-shadow: 0 0 12px #00ffff55; background: #222; }
+    .btn:active { transform: translateY(1px); }
+    .small { font-size: 12px; color: #555; margin-top: 6px; }
+    .close-x {
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      font-weight: 700;
+      color: #00ffff;
+    }
+    .close-x:hover { color: #fff; }
   `;
 
-  // HTML structure
   const wrapper = document.createElement('div');
   wrapper.className = 'card';
   wrapper.innerHTML = `
-    <div class=header><div class=title>Quick Menu</div><button class=close-x title=Close>✕</button></div><button class=btn id=btn-clicker>Auto Clicker</button><button class=btn id=btn-ads>Remove all ads</button><button class=btn id=btn-dvd>A DVD Bounces around</button><button class=btn id=btn-tab>Tab Opener</button><button class=btn id=btn-marker>Draw on the Page</button><button class=btn id=btn-scroll>Scroll to top</button><button class=btn id=btn-dark>Toggle dark</button>
+    <div class="header"><div class="title">Quick Menu</div><button class="close-x" title="Close">✕</button></div>
+    <button class="btn" id="btn-clicker">Auto Clicker</button>
+    <button class="btn" id="btn-ads">Remove all ads</button>
+    <button class="btn" id="btn-dvd">A DVD Bounces around</button>
+    <button class="btn" id="btn-tab">Tab Opener</button>
+    <button class="btn" id="btn-marker">Draw on the Page</button>
+    <button class="btn" id="btn-scroll">Scroll to top</button>
+    <button class="btn" id="btn-dark">Toggle dark</button>
   `;
 
-  // Attach CSS and node to shadow root
   const styleEl = document.createElement('style');
   styleEl.textContent = css;
   shadow.appendChild(styleEl);
   shadow.appendChild(wrapper);
 
-  // Helpers for the buttons
-  const $ = (sel) => shadow.querySelector(sel);
+  const $ = sel => shadow.querySelector(sel);
 
-  // Button: Copy selected text to clipboard
-  $('#btn-clicker').addEventListener('click', async () => {
-    if (autoClickerSt !== true ) {
-      autoClickerSt = true;
-      autoClicker();
-    }
-  });
-  $('#btn-marker').addEventListener('click', async () => {
-    if (pageMarkerSt !== true ) {
-      pageMarkerSt = true;
-      pageMarker();
-    }
-  });
-  $('#btn-tab').addEventListener('click', async () => {
-    openTabs(prompt('How many tabs do you want to open?'))
-  });
+  $('#btn-clicker').onclick = () => { if (!window.autoClickerSt) { window.autoClickerSt = true; autoClicker(); } };
+  $('#btn-marker').onclick = () => { if (!window.pageMarkerSt) { window.pageMarkerSt = true; pageMarker(); } };
+  $('#btn-tab').onclick = () => openTabs(prompt('How many tabs do you want to open?'));
+  $('#btn-dvd').onclick = () => { if (!window.dvdLogoSt) { window.dvdLogoSt = true; dvdLogo(); } };
+  $('#btn-ads').onclick = () => { if (!window.adBGoneSt) { window.adBGoneSt = true; adBGone(); } };
+  $('#btn-scroll').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  $('#btn-dvd').addEventListener('click', async () => {
-    if (dvdLogoSt !== true ) {
-      dvdLogoSt = true;
-      dvdLogo();
-    }
-  });
-
-  // Button: Fill first visible input with a prompt value
-  $('#btn-ads').addEventListener('click', () => {
-    if (adBGoneSt !== true) {
-      adBGoneSt = true;
-      adBGone();
-    }
-  });
-
-  // Button: Scroll to top
-  $('#btn-scroll').addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-
-  // Button: Toggle a dark-ish theme for the menu only
   let dark = false;
-  $('#btn-dark').addEventListener('click', () => {
+  $('#btn-dark').onclick = () => {
     dark = !dark;
     const card = wrapper;
     if (dark) {
-      card.style.background = 'rgba(20,20,20,0.95)';
-      card.style.color = '#eee';
-      card.style.border = '1px solid rgba(255,255,255,0.04)';
+      card.style.background = 'rgba(10,10,10,0.95)';
+      card.style.color = '#00ffff';
+      card.style.border = '1px solid rgba(0,255,255,0.2)';
     } else {
-      card.style.background = 'rgba(255,255,255,0.96)';
-      card.style.color = '#111';
-      card.style.border = '1px solid rgba(0,0,0,0.06)';
+      card.style.background = 'rgba(26,26,26,0.95)';
+      card.style.color = '#00ffff';
+      card.style.border = '1px solid rgba(0,255,255,0.2)';
     }
-  });
+  };
 
-  // Close button: remove the menu entirely
-  $('.close-x').addEventListener('click', () => {
-    host.remove();
-  });
+  $('.close-x').onclick = () => host.remove();
 
-  // Drag support so the user can move it around
   (function enableDrag() {
     const el = wrapper;
-    let isDown = false, startX=0, startY=0, origRight=0, origBottom=0;
-    el.addEventListener('mousedown', (e) => {
-      // only start drag when clicking the header/title area
-      const header = e.composedPath().some(node => node.classList && node.classList.contains && node.classList.contains('header'));
-      if (!header) return;
+    let isDown = false, startX = 0, startY = 0, origRight = 0, origBottom = 0;
+    el.addEventListener('mousedown', e => {
+      const headerClicked = e.composedPath().some(node => node.classList && node.classList.contains && node.classList.contains('header'));
+      if (!headerClicked) return;
       isDown = true;
       startX = e.clientX;
       startY = e.clientY;
-      // compute current position from host styles
       origRight = parseFloat(getComputedStyle(host).right) || 16;
       origBottom = parseFloat(getComputedStyle(host).bottom) || 16;
       e.preventDefault();
     });
-    window.addEventListener('mousemove', (e) => {
+    window.addEventListener('mousemove', e => {
       if (!isDown) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
-      // invert because we're using right/bottom positioning
       host.style.right = (origRight - dx) + 'px';
       host.style.bottom = (origBottom - dy) + 'px';
     });
     window.addEventListener('mouseup', () => { isDown = false; });
   })();
 
-  // small accessibility: focus first button
   shadow.querySelector('.btn').focus();
-
-  // Clean up if the page navigates (optional). Remove after 2 minutes to avoid permanence.
-  const cleanupTimer = setTimeout(() => { try { host.remove(); } catch(e){} }, 120000);
+  setTimeout(() => { try { host.remove(); } catch(e){} }, 120000);
 })();
