@@ -1,19 +1,27 @@
 /*
   Fun Menu - A floating menu with various utilities
   Author: Mukilan Madhusudhanan
-  Version: BETA 0.1.9
+  Version: BETA 1.9.1
 */
 
-(() => {
-  // Guard: only run in a browser-like environment
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return;
-  }
+// Script is intended to run in a browser environment with a DOM.
+let autoClickerSt = false;
+let adBGoneSt = false;
+let dvdLogoSt = false;
+let pageMarkerSt = false;
 
-  window.autoClickerSt = window.autoClickerSt || false;
-  window.adBGoneSt = window.adBGoneSt || false;
-  window.dvdLogoSt = window.dvdLogoSt || false;
-  window.pageMarkerSt = window.pageMarkerSt || false;
+let spamClickerActive = false;
+let spamClickerUI = null;
+let spamClickerMouse = { x: 0, y: 0 };
+let spamClickerMouseMove = null;
+let spamClickerKey = null;
+
+let adBGoneRunning = false;
+let adBGoneInterval = null;
+let adBGoneUrlCheck = null;
+let adBGoneMO = null;
+
+let pageMarkerInstance = null;
 
   function lunarPrompt(options = {}) {
     return new Promise(resolve => {
@@ -60,21 +68,21 @@
   }
 
   function autoClicker() {
-    if (window.__spamClickerActive) {
-      window.__spamClickerActive = false;
-      window.autoClickerSt = false;
-      if (window.__spamClickerUI && typeof window.__spamClickerUI.remove === 'function') {
-        window.__spamClickerUI.remove();
+    if (spamClickerActive) {
+      spamClickerActive = false;
+      autoClickerSt = false;
+      if (spamClickerUI && typeof spamClickerUI.remove === 'function') {
+        spamClickerUI.remove();
       }
-      window.removeEventListener('mousemove', window.__spamClickerMouseMove, true);
-      window.removeEventListener('keydown', window.__spamClickerKey);
+      document.removeEventListener('mousemove', spamClickerMouseMove, true);
+      document.removeEventListener('keydown', spamClickerKey);
       return;
     }
-    window.__spamClickerActive = true;
-    window.autoClickerSt = true;
-    window.__spamClickerMouse = { x: 0, y: 0 };
-    window.__spamClickerMouseMove = e => window.__spamClickerMouse = { x: e.clientX, y: e.clientY };
-    window.addEventListener('mousemove', window.__spamClickerMouseMove, true);
+    spamClickerActive = true;
+    autoClickerSt = true;
+    spamClickerMouse = { x: 0, y: 0 };
+    spamClickerMouseMove = e => { spamClickerMouse = { x: e.clientX, y: e.clientY }; };
+    document.addEventListener('mousemove', spamClickerMouseMove, true);
 
     let batch = 15, paused = false;
     const ui = document.createElement('div');
@@ -92,15 +100,15 @@
     });
     ui.textContent = 'Click spamming • S pause/resume • + / - speed • Esc stop';
     document.body.appendChild(ui);
-    window.__spamClickerUI = ui;
+    spamClickerUI = ui;
 
-    window.__spamClickerKey = e => {
+    spamClickerKey = e => {
       if (e.key === 'Escape') {
-        window.__spamClickerActive = false;
-        window.autoClickerSt = false;
+        spamClickerActive = false;
+        autoClickerSt = false;
         ui.remove();
-        window.removeEventListener('mousemove', window.__spamClickerMouseMove, true);
-        window.removeEventListener('keydown', window.__spamClickerKey);
+        document.removeEventListener('mousemove', spamClickerMouseMove, true);
+        document.removeEventListener('keydown', spamClickerKey);
         return;
       }
       if (e.key.toLowerCase() === 's') {
@@ -110,37 +118,37 @@
       if (e.key === '+' || e.key === '=') batch = Math.min(batch + 1, 50);
       if (e.key === '-') batch = Math.max(batch - 1, 1);
     };
-    window.addEventListener('keydown', window.__spamClickerKey);
+    document.addEventListener('keydown', spamClickerKey);
 
     function spam() {
-      if (!paused && window.__spamClickerActive) {
-        const el = document.elementFromPoint(window.__spamClickerMouse.x, window.__spamClickerMouse.y);
+      if (!paused && spamClickerActive) {
+        const el = document.elementFromPoint(spamClickerMouse.x, spamClickerMouse.y);
         if (el) for (let i = 0; i < batch; i++) el.click();
       }
-      if (window.__spamClickerActive) requestAnimationFrame(spam);
+      if (spamClickerActive) requestAnimationFrame(spam);
     }
     requestAnimationFrame(spam);
   }
   function adBGone() {
-    if (window.__adBGoneRunning) return;
-    window.__adBGoneRunning = true;
+    if (adBGoneRunning) return;
+    adBGoneRunning = true;
     const selectors = ['#sidebar-wrap','#advert','#xrail','#middle-article-advert-container','#sponsored-recommendations','#around-the-web','.ad','.advertisement','.GoogleActiveViewClass','.ad-slot','.ad-banner','.ad-anchored','.trc_rbox_outer','.OUTBRAIN','iframe[title*="ad"]','iframe[src*="ads"]','video[aria-label*="ad"]','amp-ad','ins.adsbygoogle','div[id^="google_ads_iframe"]'];
     const removeAds = () => { selectors.forEach(sel => { try { document.querySelectorAll(sel).forEach(el => { if (el && typeof el.remove === 'function') { el.remove(); } }); } catch (e) {} }); };
     removeAds();
-    window.__adBGoneInterval = setInterval(removeAds, 1500);
+    adBGoneInterval = setInterval(removeAds, 1500);
 
-    if (window.MutationObserver) {
+    if (typeof MutationObserver !== 'undefined') {
       const mo = new MutationObserver(removeAds);
       mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
-      window.__adBGoneMO = mo;
+      adBGoneMO = mo;
     }
 
     const wrapHistory = (obj, method) => { const orig = obj[method]; obj[method] = function() { const r = orig.apply(this, arguments); setTimeout(removeAds, 60); return r; }; };
     wrapHistory(history, 'pushState'); wrapHistory(history, 'replaceState');
-    window.addEventListener('popstate', () => setTimeout(removeAds, 60));
+    addEventListener('popstate', () => setTimeout(removeAds, 60));
 
     let lastUrl = location.href;
-    window.__adBGoneUrlCheck = setInterval(() => { if (location.href !== lastUrl) { lastUrl = location.href; removeAds(); } }, 500);
+    adBGoneUrlCheck = setInterval(() => { if (location.href !== lastUrl) { lastUrl = location.href; removeAds(); } }, 500);
 
     if (!document.getElementById('adBGoneBtn')) {
       const btn = document.createElement('button');
@@ -164,12 +172,12 @@
     const speed = Math.max(2, Math.min(W,H)/200), palette=["#ff8800","#e124ff","#6a19ff","#ff2188"], dvdWidth=136, dvdHeight=60; 
     let prevColorIndex=-1;
     function getNewColor(){ let idx=Math.floor(Math.random()*palette.length); while(idx===prevColorIndex) idx=Math.floor(Math.random()*palette.length); prevColorIndex=idx; return palette[idx]; }
-    function animate(){ if(!document.body.contains(dvd)) return; if(y+dvdHeight>=innerHeight||y<=0){ dirY*=-1; dvd.style.backgroundColor=getNewColor(); } if(x+dvdWidth>=innerWidth||x<=0){ dirX*=-1; dvd.style.backgroundColor=getNewColor(); } x+=dirX*speed; y+=dirY*speed; dvd.style.left=x+'px'; dvd.style.top=y+'px'; window.requestAnimationFrame(animate); }
-    window.requestAnimationFrame(animate);
-    function keyHandler(e){ if(!document.body.contains(dvd)){ document.removeEventListener('keydown',keyHandler); window.dvdLogoSt=false; return; } if(e.key==='1') dvd.style.display=dvd.style.display==='none'?'block':'none'; if(e.key==='Escape'){ dvd.remove(); window.dvdLogoSt=false; document.removeEventListener('keydown',keyHandler); } }
+    function animate(){ if(!document.body.contains(dvd)) return; if(y+dvdHeight>=innerHeight||y<=0){ dirY*=-1; dvd.style.backgroundColor=getNewColor(); } if(x+dvdWidth>=innerWidth||x<=0){ dirX*=-1; dvd.style.backgroundColor=getNewColor(); } x+=dirX*speed; y+=dirY*speed; dvd.style.left=x+'px'; dvd.style.top=y+'px'; requestAnimationFrame(animate); }
+    requestAnimationFrame(animate);
+    function keyHandler(e){ if(!document.body.contains(dvd)){ document.removeEventListener('keydown',keyHandler); dvdLogoSt=false; return; } if(e.key==='1') dvd.style.display=dvd.style.display==='none'?'block':'none'; if(e.key==='Escape'){ dvd.remove(); dvdLogoSt=false; document.removeEventListener('keydown',keyHandler); } }
     document.addEventListener('keydown',keyHandler);
   }
-  function openTabs(count){ if(!count||isNaN(count)||count<=0) return; const n=Math.min(50,Math.floor(count)); for(let i=0;i<n;i++) window.open('about:blank','_blank'); }
+  function openTabs(count){ if(!count||isNaN(count)||count<=0) return; const n=Math.min(50,Math.floor(count)); for(let i=0;i<n;i++) open('about:blank','_blank'); }
   function cloak() {
     if(document.getElementById('cloakGUI')) return;
     const gui=document.createElement('div');
@@ -202,8 +210,8 @@
   }
 
   function pageMarker(){
-    if(window.__pageMarker){
-      window.__pageMarker.toggle();
+    if(pageMarkerInstance){
+      pageMarkerInstance.toggle();
       return;
     }
     const canvas=document.createElement('canvas');
@@ -213,9 +221,9 @@
     const ctx=canvas.getContext('2d');
     let drawing=false, lastX=0,lastY=0,color='#00ffff',stack=[], erasing=false, brushSize=2, eraserRadius=12;
     let panel=null;
-    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    function resize(){ canvas.width=innerWidth; canvas.height=innerHeight; }
     resize();
-    window.addEventListener('resize',resize);
+    addEventListener('resize',resize);
     function start(e){ drawing=true; lastX=e.clientX; lastY=e.clientY; draw(e); }
     function draw(e){
       if(!drawing) return;
@@ -247,7 +255,7 @@
     canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',draw); canvas.addEventListener('mouseup',stop); canvas.addEventListener('mouseleave',stop);
     const closeBtn=document.createElement('button');
     closeBtn.textContent='✕'; Object.assign(closeBtn.style,{position:'fixed',top:'10px',right:'10px',zIndex:2147483648,padding:'6px 10px',background:'#111',color:'#0ff',border:'1px solid #0ff',borderRadius:'6px',cursor:'pointer'}); 
-    closeBtn.addEventListener('click',()=>{ canvas.remove(); closeBtn.remove(); window.__pageMarker=null; window.pageMarkerSt=false; });
+    closeBtn.addEventListener('click',()=>{ canvas.remove(); closeBtn.remove(); pageMarkerInstance=null; pageMarkerSt=false; });
     document.body.appendChild(closeBtn);
 
     // extra handler so panel (if present) is also cleaned up
@@ -301,11 +309,11 @@
     penBtn.addEventListener('click',()=>{ erasing=false; brushSize=2; updateMode(); });
     eraserBtn.addEventListener('click',()=>{ erasing=true; eraserRadius=12; updateMode(); });
     clearBtn.addEventListener('click',()=>{ ctx.clearRect(0,0,canvas.width,canvas.height); });
-    closePanelBtn.addEventListener('click',()=>{ canvas.remove(); closeBtn.remove(); if(panel && panel.parentNode){ panel.parentNode.removeChild(panel); } panel=null; window.__pageMarker=null; window.pageMarkerSt=false; });
+    closePanelBtn.addEventListener('click',()=>{ canvas.remove(); closeBtn.remove(); if(panel && panel.parentNode){ panel.parentNode.removeChild(panel); } panel=null; pageMarkerInstance=null; pageMarkerSt=false; });
     document.body.appendChild(panel);
     updateMode();
 
-    window.__pageMarker={toggle:()=>{ if(canvas.style.display==='none'){ canvas.style.display='block'; closeBtn.style.display='block'; if(panel){ panel.style.display='flex'; } }else{ canvas.style.display='none'; closeBtn.style.display='none'; if(panel){ panel.style.display='none'; } } }};
+    pageMarkerInstance={toggle:()=>{ if(canvas.style.display==='none'){ canvas.style.display='block'; closeBtn.style.display='block'; if(panel){ panel.style.display='flex'; } }else{ canvas.style.display='none'; closeBtn.style.display='none'; if(panel){ panel.style.display='none'; } } }};
   }
 
   (function createFloatingMenu(){
@@ -336,13 +344,13 @@
     `;
     shadow.appendChild(styleEl); shadow.appendChild(wrapper);
     const $=sel=>shadow.querySelector(sel);
-    $('#btn-clicker').onclick=()=>{ if(!window.autoClickerSt){ window.autoClickerSt=true; autoClicker(); } };
-    $('#btn-marker').onclick=()=>{ if(!window.pageMarkerSt){ window.pageMarkerSt=true; pageMarker(); } else if (window.__pageMarker && typeof window.__pageMarker.toggle === 'function') { window.__pageMarker.toggle(); } };
+    $('#btn-clicker').onclick=()=>{ if(!autoClickerSt){ autoClickerSt=true; autoClicker(); } };
+    $('#btn-marker').onclick=()=>{ if(!pageMarkerSt){ pageMarkerSt=true; pageMarker(); } else if (pageMarkerInstance && typeof pageMarkerInstance.toggle === 'function') { pageMarkerInstance.toggle(); } };
     $('#btn-tab').onclick=async()=>{ const count=await lunarPrompt({title:'How many tabs do you want to open?',placeholder:'Type a number...'}); if(count) openTabs(Number(count)); };
     $('#btn-cloak').onclick=()=>cloak();
-    $('#btn-dvd').onclick=()=>{ if(!window.dvdLogoSt){ window.dvdLogoSt=true; dvdLogo(); } };
-    $('#btn-ads').onclick=()=>{ if(!window.adBGoneSt){ window.adBGoneSt=true; adBGone(); } };
-    $('#btn-scroll').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+    $('#btn-dvd').onclick=()=>{ if(!dvdLogoSt){ dvdLogoSt=true; dvdLogo(); } };
+    $('#btn-ads').onclick=()=>{ if(!adBGoneSt){ adBGoneSt=true; adBGone(); } };
+    $('#btn-scroll').onclick=()=>scrollTo({top:0,behavior:'smooth'});
     let dark=false; $('#btn-dark').onclick=()=>{ dark=!dark; wrapper.style.background=dark?'rgba(6,6,6,0.95)':'rgba(26,26,26,0.95)'; wrapper.style.border='1px solid rgba(0,255,255,0.12)'; };
     // drag guard + logic
     let dragging = false;
@@ -364,15 +372,15 @@
       dragging = true;
       dragStartTime = Date.now();
       const rect = host.getBoundingClientRect();
-      host._dragStart = { startX: e.clientX, startY: e.clientY, startRight: window.innerWidth - rect.right, startBottom: window.innerHeight - rect.bottom };
+      host._dragStart = { startX: e.clientX, startY: e.clientY, startRight: innerWidth - rect.right, startBottom: innerHeight - rect.bottom };
       try { wrapper.setPointerCapture && wrapper.setPointerCapture(e.pointerId); } catch (err) {}
     });
 
     wrapper.addEventListener('pointermove', (e) => {
       if (!dragging || !host._dragStart) return;
       const s = host._dragStart;
-      host.style.right = Math.max(0, window.innerWidth - e.clientX + s.startX - s.startRight) + 'px';
-      host.style.bottom = Math.max(0, window.innerHeight - e.clientY + s.startY - s.startBottom) + 'px';
+      host.style.right = Math.max(0, innerWidth - e.clientX + s.startX - s.startRight) + 'px';
+      host.style.bottom = Math.max(0, innerHeight - e.clientY + s.startY - s.startBottom) + 'px';
     });
     function endDrag(e) {
       if (!dragging) return;
@@ -385,4 +393,3 @@
     wrapper.addEventListener('pointerup', endDrag);
     wrapper.addEventListener('pointercancel', endDrag);
   })();
-})();
