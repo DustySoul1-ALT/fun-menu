@@ -1,4 +1,15 @@
+/*
+  Fun Menu - A floating menu with various utilities
+  Author: Mukilan Madhusudhanan
+  Version: BETA 0.1.9
+*/
+
 (() => {
+  // Guard: only run in a browser-like environment
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return;
+  }
+
   window.autoClickerSt = window.autoClickerSt || false;
   window.adBGoneSt = window.adBGoneSt || false;
   window.dvdLogoSt = window.dvdLogoSt || false;
@@ -51,17 +62,21 @@
   function autoClicker() {
     if (window.__spamClickerActive) {
       window.__spamClickerActive = false;
-      window.__spamClickerUI?.remove();
+      window.autoClickerSt = false;
+      if (window.__spamClickerUI && typeof window.__spamClickerUI.remove === 'function') {
+        window.__spamClickerUI.remove();
+      }
       window.removeEventListener('mousemove', window.__spamClickerMouseMove, true);
       window.removeEventListener('keydown', window.__spamClickerKey);
       return;
     }
     window.__spamClickerActive = true;
+    window.autoClickerSt = true;
     window.__spamClickerMouse = { x: 0, y: 0 };
     window.__spamClickerMouseMove = e => window.__spamClickerMouse = { x: e.clientX, y: e.clientY };
     window.addEventListener('mousemove', window.__spamClickerMouseMove, true);
 
-    let batch = 5, paused = false;
+    let batch = 15, paused = false;
     const ui = document.createElement('div');
     Object.assign(ui.style, {
       position: 'fixed',
@@ -82,6 +97,7 @@
     window.__spamClickerKey = e => {
       if (e.key === 'Escape') {
         window.__spamClickerActive = false;
+        window.autoClickerSt = false;
         ui.remove();
         window.removeEventListener('mousemove', window.__spamClickerMouseMove, true);
         window.removeEventListener('keydown', window.__spamClickerKey);
@@ -105,12 +121,11 @@
     }
     requestAnimationFrame(spam);
   }
-
   function adBGone() {
     if (window.__adBGoneRunning) return;
     window.__adBGoneRunning = true;
     const selectors = ['#sidebar-wrap','#advert','#xrail','#middle-article-advert-container','#sponsored-recommendations','#around-the-web','.ad','.advertisement','.GoogleActiveViewClass','.ad-slot','.ad-banner','.ad-anchored','.trc_rbox_outer','.OUTBRAIN','iframe[title*="ad"]','iframe[src*="ads"]','video[aria-label*="ad"]','amp-ad','ins.adsbygoogle','div[id^="google_ads_iframe"]'];
-    const removeAds = () => { selectors.forEach(sel => { try { document.querySelectorAll(sel).forEach(el => el?.remove()); } catch {} }); };
+    const removeAds = () => { selectors.forEach(sel => { try { document.querySelectorAll(sel).forEach(el => { if (el && typeof el.remove === 'function') { el.remove(); } }); } catch (e) {} }); };
     removeAds();
     window.__adBGoneInterval = setInterval(removeAds, 1500);
 
@@ -139,7 +154,6 @@
       document.body.appendChild(btn);
     }
   }
-
   function dvdLogo() {
     const W = innerWidth, H = innerHeight;
     const dvd = document.createElement('div');
@@ -155,9 +169,7 @@
     function keyHandler(e){ if(!document.body.contains(dvd)){ document.removeEventListener('keydown',keyHandler); window.dvdLogoSt=false; return; } if(e.key==='1') dvd.style.display=dvd.style.display==='none'?'block':'none'; if(e.key==='Escape'){ dvd.remove(); window.dvdLogoSt=false; document.removeEventListener('keydown',keyHandler); } }
     document.addEventListener('keydown',keyHandler);
   }
-
   function openTabs(count){ if(!count||isNaN(count)||count<=0) return; const n=Math.min(50,Math.floor(count)); for(let i=0;i<n;i++) window.open('about:blank','_blank'); }
-
   function cloak() {
     if(document.getElementById('cloakGUI')) return;
     const gui=document.createElement('div');
@@ -199,19 +211,101 @@
     Object.assign(canvas.style,{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',zIndex:2147483647,cursor:'crosshair'});
     document.body.appendChild(canvas);
     const ctx=canvas.getContext('2d');
-    let drawing=false, lastX=0,lastY=0,color='#00ffff',stack=[];
+    let drawing=false, lastX=0,lastY=0,color='#00ffff',stack=[], erasing=false, brushSize=2, eraserRadius=12;
+    let panel=null;
     function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
     resize();
     window.addEventListener('resize',resize);
-    function start(e){ drawing=true; lastX=e.clientX; lastY=e.clientY; }
-    function draw(e){ if(!drawing) return; ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(e.clientX,e.clientY); ctx.stroke(); lastX=e.clientX; lastY=e.clientY; }
+    function start(e){ drawing=true; lastX=e.clientX; lastY=e.clientY; draw(e); }
+    function draw(e){
+      if(!drawing) return;
+      const x=e.clientX, y=e.clientY;
+      if (erasing) {
+        ctx.save();
+        ctx.globalCompositeOperation='destination-out';
+        ctx.beginPath();
+        ctx.arc(x,y,eraserRadius,0,Math.PI*2,false);
+        ctx.fill();
+        ctx.restore();
+        lastX=x; lastY=y;
+        return;
+      }
+      ctx.save();
+      ctx.globalCompositeOperation='source-over';
+      ctx.strokeStyle=color;
+      ctx.lineWidth=brushSize;
+      ctx.lineJoin='round';
+      ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(lastX,lastY);
+      ctx.lineTo(x,y);
+      ctx.stroke();
+      ctx.restore();
+      lastX=x; lastY=y;
+    }
     function stop(){ drawing=false; try{ stack.push(ctx.getImageData(0,0,canvas.width,canvas.height)); }catch(e){} }
     canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',draw); canvas.addEventListener('mouseup',stop); canvas.addEventListener('mouseleave',stop);
     const closeBtn=document.createElement('button');
     closeBtn.textContent='✕'; Object.assign(closeBtn.style,{position:'fixed',top:'10px',right:'10px',zIndex:2147483648,padding:'6px 10px',background:'#111',color:'#0ff',border:'1px solid #0ff',borderRadius:'6px',cursor:'pointer'}); 
     closeBtn.addEventListener('click',()=>{ canvas.remove(); closeBtn.remove(); window.__pageMarker=null; window.pageMarkerSt=false; });
     document.body.appendChild(closeBtn);
-    window.__pageMarker={toggle:()=>{ if(canvas.style.display==='none'){ canvas.style.display='block'; closeBtn.style.display='block'; }else{ canvas.style.display='none'; closeBtn.style.display='none'; } }};
+
+    // extra handler so panel (if present) is also cleaned up
+    closeBtn.addEventListener('click',()=>{ if(panel){ panel.style.display='none'; if(panel.parentNode){ panel.parentNode.removeChild(panel); } panel=null; } });
+
+    // toolbar controls for drawing / erasing / clearing
+    panel=document.createElement('div');
+    Object.assign(panel.style,{
+      position:'fixed',
+      top:'10px',
+      left:'50%',
+      transform:'translateX(-50%)',
+      zIndex:2147483648,
+      display:'flex',
+      alignItems:'center',
+      gap:'6px',
+      padding:'6px 10px',
+      background:'rgba(0,0,0,0.85)',
+      color:'#0ff',
+      borderRadius:'999px',
+      fontFamily:'system-ui,-apple-system,\"Segoe UI\",sans-serif',
+      fontSize:'11px',
+      boxShadow:'0 0 8px rgba(0,255,255,0.5)'
+    });
+    function mkBtn(label){
+      const b=document.createElement('button');
+      b.textContent=label;
+      Object.assign(b.style,{
+        border:'none',
+        background:'transparent',
+        color:'#0ff',
+        padding:'4px 8px',
+        borderRadius:'999px',
+        cursor:'pointer',
+        fontSize:'11px'
+      });
+      panel.appendChild(b);
+      return b;
+    }
+    const penBtn=mkBtn('Pen');
+    const eraserBtn=mkBtn('Eraser');
+    const clearBtn=mkBtn('Clear');
+    const closePanelBtn=mkBtn('Close');
+    function updateMode(){
+      penBtn.style.background=erasing?'transparent':'#0ff';
+      penBtn.style.color=erasing?'#0ff':'#000';
+      eraserBtn.style.background=erasing?'#0ff':'transparent';
+      eraserBtn.style.color=erasing?'#000':'#0ff';
+      canvas.style.cursor=erasing?'cell':'crosshair';
+    }
+    penBtn.addEventListener('click',()=>{ erasing=false; brushSize=2; updateMode(); });
+    eraserBtn.addEventListener('click',()=>{ erasing=true; eraserRadius=12; updateMode(); });
+    clearBtn.addEventListener('click',()=>{ ctx.clearRect(0,0,canvas.width,canvas.height); });
+    closePanelBtn.addEventListener('click',()=>{ canvas.remove(); closeBtn.remove(); if(panel && panel.parentNode){ panel.parentNode.removeChild(panel); } panel=null; window.__pageMarker=null; window.pageMarkerSt=false; });
+    document.body.appendChild(panel);
+    updateMode();
+
+    window.__pageMarker={toggle:()=>{ if(canvas.style.display==='none'){ canvas.style.display='block'; closeBtn.style.display='block'; if(panel){ panel.style.display='flex'; } }else{ canvas.style.display='none'; closeBtn.style.display='none'; if(panel){ panel.style.display='none'; } } }};
   }
 
   (function createFloatingMenu(){
@@ -243,19 +337,17 @@
     shadow.appendChild(styleEl); shadow.appendChild(wrapper);
     const $=sel=>shadow.querySelector(sel);
     $('#btn-clicker').onclick=()=>{ if(!window.autoClickerSt){ window.autoClickerSt=true; autoClicker(); } };
-    $('#btn-marker').onclick=()=>{ if(!window.pageMarkerSt){ window.pageMarkerSt=true; pageMarker(); } else window.__pageMarker?.toggle(); };
+    $('#btn-marker').onclick=()=>{ if(!window.pageMarkerSt){ window.pageMarkerSt=true; pageMarker(); } else if (window.__pageMarker && typeof window.__pageMarker.toggle === 'function') { window.__pageMarker.toggle(); } };
     $('#btn-tab').onclick=async()=>{ const count=await lunarPrompt({title:'How many tabs do you want to open?',placeholder:'Type a number...'}); if(count) openTabs(Number(count)); };
     $('#btn-cloak').onclick=()=>cloak();
     $('#btn-dvd').onclick=()=>{ if(!window.dvdLogoSt){ window.dvdLogoSt=true; dvdLogo(); } };
     $('#btn-ads').onclick=()=>{ if(!window.adBGoneSt){ window.adBGoneSt=true; adBGone(); } };
     $('#btn-scroll').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
     let dark=false; $('#btn-dark').onclick=()=>{ dark=!dark; wrapper.style.background=dark?'rgba(6,6,6,0.95)':'rgba(26,26,26,0.95)'; wrapper.style.border='1px solid rgba(0,255,255,0.12)'; };
-
     // drag guard + logic
     let dragging = false;
     let dragStartTime = 0;
     const dragDebounceMs = 200; // ignore close clicks that happen within this time after drag start
-
     // Close button: only remove when NOT dragging (or if drag was long enough ago)
     const closeBtn = shadow.querySelector('.close-x');
     closeBtn.addEventListener('click', (ev) => {
@@ -265,7 +357,6 @@
       }
       host.remove();
     });
-
     // Use composedPath to detect if pointerdown started on close button (handles shadow DOM correctly)
     wrapper.addEventListener('pointerdown', (e) => {
       const path = e.composedPath ? e.composedPath() : [e.target];
@@ -283,7 +374,6 @@
       host.style.right = Math.max(0, window.innerWidth - e.clientX + s.startX - s.startRight) + 'px';
       host.style.bottom = Math.max(0, window.innerHeight - e.clientY + s.startY - s.startBottom) + 'px';
     });
-
     function endDrag(e) {
       if (!dragging) return;
       dragging = false;
@@ -294,7 +384,5 @@
     }
     wrapper.addEventListener('pointerup', endDrag);
     wrapper.addEventListener('pointercancel', endDrag);
-
   })();
-
 })();
