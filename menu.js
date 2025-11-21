@@ -1,395 +1,529 @@
 /*
   Fun Menu - A floating menu with various utilities
   Author: Mukilan Madhusudhanan
-  Version: BETA 1.9.1
+  Version: DEV 1.9
 */
 
-// Script is intended to run in a browser environment with a DOM.
 let autoClickerSt = false;
 let adBGoneSt = false;
 let dvdLogoSt = false;
 let pageMarkerSt = false;
 
-let spamClickerActive = false;
-let spamClickerUI = null;
-let spamClickerMouse = { x: 0, y: 0 };
-let spamClickerMouseMove = null;
-let spamClickerKey = null;
-
-let adBGoneRunning = false;
-let adBGoneInterval = null;
-let adBGoneUrlCheck = null;
-let adBGoneMO = null;
-
-let pageMarkerInstance = null;
-
-  function lunarPrompt(options = {}) {
-    return new Promise(resolve => {
-      if (document.getElementById('lunarPromptGUI')) return resolve(null);
-      const gui = document.createElement('div');
-      gui.id = 'lunarPromptGUI';
-      Object.assign(gui.style, {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: '#1e1e2f',
-        padding: '20px',
-        borderRadius: '12px',
-        boxShadow: '0 0 15px rgba(0,0,0,0.7)',
-        fontFamily: 'Arial, sans-serif',
-        color: '#fff',
-        zIndex: 2147483647,
-        width: '320px',
-        textAlign: 'center'
-      });
-      gui.innerHTML = `
-        <h3 style="margin:0 0 10px 0;font-size:16px;">${options.title || 'Enter Value'}</h3>
-        <input id="lunarPromptInput" type="text" placeholder="${options.placeholder || ''}" style="width:100%; padding:8px; border-radius:6px; border:none; margin-bottom:10px; font-size:14px;">
-        <div style="display:flex;gap:8px;justify-content:center">
-          <button id="lunarPromptBtn" style="padding:8px 14px;border:none;border-radius:6px;background:#4e4eff;color:#fff;cursor:pointer">OK</button>
-          <button id="lunarPromptCancel" style="padding:8px 14px;border:1px solid #666;border-radius:6px;background:#222;color:#ccc;cursor:pointer">Cancel</button>
-        </div>
-      `;
-      document.body.appendChild(gui);
-      const input = document.getElementById('lunarPromptInput');
-      const ok = document.getElementById('lunarPromptBtn');
-      const cancel = document.getElementById('lunarPromptCancel');
-      input.focus();
-      const cleanup = () => { try { gui.remove(); } catch (e) {} ; document.removeEventListener('keydown', onKey); };
-      ok.addEventListener('click', () => { const v = input.value; cleanup(); resolve(v); });
-      cancel.addEventListener('click', () => { cleanup(); resolve(null); });
-      function onKey(e) {
-        if (e.key === 'Enter') ok.click();
-        if (e.key === 'Escape') cancel.click();
-      }
-      document.addEventListener('keydown', onKey);
-    });
-  }
-
-  function autoClicker() {
-    if (spamClickerActive) {
-      spamClickerActive = false;
-      autoClickerSt = false;
-      if (spamClickerUI && typeof spamClickerUI.remove === 'function') {
-        spamClickerUI.remove();
-      }
-      document.removeEventListener('mousemove', spamClickerMouseMove, true);
-      document.removeEventListener('keydown', spamClickerKey);
-      return;
-    }
-    spamClickerActive = true;
-    autoClickerSt = true;
-    spamClickerMouse = { x: 0, y: 0 };
-    spamClickerMouseMove = e => { spamClickerMouse = { x: e.clientX, y: e.clientY }; };
-    document.addEventListener('mousemove', spamClickerMouseMove, true);
-
-    let batch = 15, paused = false;
-    const ui = document.createElement('div');
-    Object.assign(ui.style, {
-      position: 'fixed',
-      right: '12px',
-      bottom: '12px',
-      zIndex: 2147483647,
-      padding: '8px 12px',
-      background: 'rgba(0,0,0,0.75)',
-      color: '#fff',
-      fontFamily: 'system-ui',
-      fontSize: '12px',
-      borderRadius: '8px'
-    });
-    ui.textContent = 'Click spamming • S pause/resume • + / - speed • Esc stop';
-    document.body.appendChild(ui);
-    spamClickerUI = ui;
-
-    spamClickerKey = e => {
-      if (e.key === 'Escape') {
-        spamClickerActive = false;
-        autoClickerSt = false;
-        ui.remove();
-        document.removeEventListener('mousemove', spamClickerMouseMove, true);
-        document.removeEventListener('keydown', spamClickerKey);
+function autoClicker() {
+    if (window.__spamClickerActive) {
+        window.__spamClickerActive = false;
+        window.__spamClickerUI?.remove();
+        window.removeEventListener("mousemove", window.__spamClickerMouseMove, true);
+        window.removeEventListener("keydown", window.__spamClickerKey);
         return;
-      }
-      if (e.key.toLowerCase() === 's') {
-        paused = !paused;
-        ui.textContent = paused ? 'Paused • S resume • Esc stop' : 'Click spamming • S pause/resume • + / - speed • Esc stop';
-      }
-      if (e.key === '+' || e.key === '=') batch = Math.min(batch + 1, 50);
-      if (e.key === '-') batch = Math.max(batch - 1, 1);
+    }
+
+    window.__spamClickerActive = true;
+    window.__spamClickerMouse = { x: 0, y: 0 };
+    window.__spamClickerMouseMove = e => window.__spamClickerMouse = { x: e.clientX, y: e.clientY };
+    window.addEventListener("mousemove", window.__spamClickerMouseMove, true);
+
+    let batch = 5, paused = false;
+
+    const ui = document.createElement("div");
+    Object.assign(ui.style, {
+        position: "fixed",
+        right: "12px",
+        bottom: "12px",
+        zIndex: 2147483647,
+        padding: "6px 10px",
+        background: "rgba(0,0,0,0.75)",
+        color: "#fff",
+        fontFamily: "system-ui",
+        fontSize: "12px",
+        borderRadius: "8px"
+    });
+    ui.textContent = "Click spamming • S pause/resume • + / - speed • Esc stop";
+    document.body.appendChild(ui);
+    window.__spamClickerUI = ui;
+
+    window.__spamClickerKey = e => {
+        if (e.key === "Escape") {
+            window.__spamClickerActive = false;
+            ui.remove();
+            window.removeEventListener("mousemove", window.__spamClickerMouseMove, true);
+            window.removeEventListener("keydown", window.__spamClickerKey);
+            return;
+        }
+        if (e.key.toLowerCase() === "s") {
+            paused = !paused;
+            ui.textContent = paused
+                ? "Paused • S resume • Esc stop"
+                : "Click spamming • S pause/resume • + / - speed • Esc stop";
+        }
+        if (e.key === "+" || e.key === "=") batch = Math.min(batch + 1, 20);
+        if (e.key === "-") batch = Math.max(batch - 1, 1);
     };
-    document.addEventListener('keydown', spamClickerKey);
+    window.addEventListener("keydown", window.__spamClickerKey);
 
     function spam() {
-      if (!paused && spamClickerActive) {
-        const el = document.elementFromPoint(spamClickerMouse.x, spamClickerMouse.y);
-        if (el) for (let i = 0; i < batch; i++) el.click();
-      }
-      if (spamClickerActive) requestAnimationFrame(spam);
+        if (!paused && window.__spamClickerActive) {
+            const el = document.elementFromPoint(window.__spamClickerMouse.x, window.__spamClickerMouse.y);
+            if (el) for (let i = 0; i < batch; i++) el.click();
+        }
+        if (window.__spamClickerActive) requestAnimationFrame(spam);
     }
+
     requestAnimationFrame(spam);
-  }
-  function adBGone() {
-    if (adBGoneRunning) return;
-    adBGoneRunning = true;
-    const selectors = ['#sidebar-wrap','#advert','#xrail','#middle-article-advert-container','#sponsored-recommendations','#around-the-web','.ad','.advertisement','.GoogleActiveViewClass','.ad-slot','.ad-banner','.ad-anchored','.trc_rbox_outer','.OUTBRAIN','iframe[title*="ad"]','iframe[src*="ads"]','video[aria-label*="ad"]','amp-ad','ins.adsbygoogle','div[id^="google_ads_iframe"]'];
-    const removeAds = () => { selectors.forEach(sel => { try { document.querySelectorAll(sel).forEach(el => { if (el && typeof el.remove === 'function') { el.remove(); } }); } catch (e) {} }); };
-    removeAds();
-    adBGoneInterval = setInterval(removeAds, 1500);
+}
+function adBGone() {
+    const selectors = [
+        '#sidebar-wrap','#advert','#xrail','#middle-article-advert-container','#sponsored-recommendations',
+        '#around-the-web','#taboola-content','.ad','.advertisement','.GoogleActiveViewClass','.ad-slot',
+        '.ad-banner','.ad-anchored','.trc_rbox_outer','.OUTBRAIN','iframe','video','amp-ad','ins.adsbygoogle',
+        'div[id^="google_ads_iframe"]'
+    ];
 
-    if (typeof MutationObserver !== 'undefined') {
-      const mo = new MutationObserver(removeAds);
-      mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
-      adBGoneMO = mo;
+    const removeAds = () => {
+        selectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => el?.remove());
+        });
+    };
+
+    removeAds(); // initial cleanup
+    setInterval(removeAds, 1500);
+
+    if (window.MutationObserver) {
+        new MutationObserver(removeAds).observe(document.documentElement || document.body, {
+            childList: true,
+            subtree: true
+        });
     }
-
-    const wrapHistory = (obj, method) => { const orig = obj[method]; obj[method] = function() { const r = orig.apply(this, arguments); setTimeout(removeAds, 60); return r; }; };
-    wrapHistory(history, 'pushState'); wrapHistory(history, 'replaceState');
-    addEventListener('popstate', () => setTimeout(removeAds, 60));
 
     let lastUrl = location.href;
-    adBGoneUrlCheck = setInterval(() => { if (location.href !== lastUrl) { lastUrl = location.href; removeAds(); } }, 500);
 
-    if (!document.getElementById('adBGoneBtn')) {
-      const btn = document.createElement('button');
-      btn.id = 'adBGoneBtn';
-      btn.innerText = '💥 Ad-B-Gone';
-      Object.assign(btn.style, { position:'fixed', top:'10px', right:'10px', zIndex:2147483647, padding:'10px 16px', background:'#1a1a1a', color:'#00ffff', border:'2px solid #00ffff', borderRadius:'8px', cursor:'grab', fontFamily:'Arial,sans-serif', fontWeight:'700', boxShadow:'0 0 8px #00ffff,0 0 16px #00ffff33', transition:'all 0.12s ease', touchAction:'none' });
-      btn.addEventListener('pointerdown', ev => { try { btn.setPointerCapture(ev.pointerId); } catch (e) {} btn.dataset.dragging='1'; btn.dataset.offsetX=ev.clientX-btn.getBoundingClientRect().left; btn.dataset.offsetY=ev.clientY-btn.getBoundingClientRect().top; btn.style.cursor='grabbing'; });
-      btn.addEventListener('pointermove', ev => { if(btn.dataset.dragging!=='1') return; btn.style.left=Math.max(0,ev.clientX-Number(btn.dataset.offsetX))+'px'; btn.style.top=Math.max(0,ev.clientY-Number(btn.dataset.offsetY))+'px'; btn.style.right='auto'; btn.style.bottom='auto'; });
-      btn.addEventListener('pointerup', ev => { try { btn.releasePointerCapture && btn.releasePointerCapture(ev.pointerId); } catch (e) {} btn.dataset.dragging='0'; btn.style.cursor='grab'; });
-      btn.addEventListener('click', removeAds);
-      document.body.appendChild(btn);
-    }
-  }
-  function dvdLogo() {
-    const W = innerWidth, H = innerHeight;
-    const dvd = document.createElement('div');
-    dvd.id = "dvdLogoAnim";
-    Object.assign(dvd.style, { position:'fixed', left:'0px', top:'0px', height:'60px', width:'136px', backgroundRepeat:'no-repeat', backgroundSize:'75px', backgroundPosition:'center', backgroundColor:'#f80', zIndex:2147483647, pointerEvents:'none', maskImage:'url(https://upload.wikimedia.org/wikipedia/commons/9/9b/DVD_logo.svg)', WebkitMaskImage:'url(https://upload.wikimedia.org/wikipedia/commons/9/9b/DVD_logo.svg)' });
-    document.body.appendChild(dvd);
-    let x = Math.floor(Math.random()*(W-136)), y = Math.floor(Math.random()*(H-60)), dirX = 1, dirY = 1, steps=0;
-    const speed = Math.max(2, Math.min(W,H)/200), palette=["#ff8800","#e124ff","#6a19ff","#ff2188"], dvdWidth=136, dvdHeight=60; 
-    let prevColorIndex=-1;
-    function getNewColor(){ let idx=Math.floor(Math.random()*palette.length); while(idx===prevColorIndex) idx=Math.floor(Math.random()*palette.length); prevColorIndex=idx; return palette[idx]; }
-    function animate(){ if(!document.body.contains(dvd)) return; if(y+dvdHeight>=innerHeight||y<=0){ dirY*=-1; dvd.style.backgroundColor=getNewColor(); } if(x+dvdWidth>=innerWidth||x<=0){ dirX*=-1; dvd.style.backgroundColor=getNewColor(); } x+=dirX*speed; y+=dirY*speed; dvd.style.left=x+'px'; dvd.style.top=y+'px'; requestAnimationFrame(animate); }
-    requestAnimationFrame(animate);
-    function keyHandler(e){ if(!document.body.contains(dvd)){ document.removeEventListener('keydown',keyHandler); dvdLogoSt=false; return; } if(e.key==='1') dvd.style.display=dvd.style.display==='none'?'block':'none'; if(e.key==='Escape'){ dvd.remove(); dvdLogoSt=false; document.removeEventListener('keydown',keyHandler); } }
-    document.addEventListener('keydown',keyHandler);
-  }
-  function openTabs(count){ if(!count||isNaN(count)||count<=0) return; const n=Math.min(50,Math.floor(count)); for(let i=0;i<n;i++) open('about:blank','_blank'); }
-  function cloak() {
-    if(document.getElementById('cloakGUI')) return;
-    const gui=document.createElement('div');
-    gui.id='cloakGUI';
-    Object.assign(gui.style,{position:'fixed',top:'20px',right:'20px',background:'#222',color:'#fff',padding:'15px',borderRadius:'8px',fontFamily:'sans-serif',zIndex:2147483647,width:'280px'});
-    gui.innerHTML=`
-      <h4 style="margin:0 0 10px 0;font-size:15px">Tab Cloak</h4>
-      <label style="display:block;margin-bottom:8px">Title: <input id="cloakTitleInput" placeholder="New tab title" style="width:100%;box-sizing:border-box"></label>
-      <label style="display:block;margin-bottom:8px">Icon:
-        <select id="cloakIconSelect" style="width:100%;box-sizing:border-box;margin-top:6px">
-          <option value="">-- choose or paste URL --</option>
-          <option value="https://www.google.com/favicon.ico">Google</option>
-          <option value="https://www.microsoft.com/favicon.ico">Microsoft</option>
-          <option value="https://github.githubassets.com/favicons/favicon.png">GitHub</option>
-        </select>
-      </label>
-      <input id="cloakIconInput" placeholder="Custom icon URL" style="width:100%;box-sizing:border-box;margin-top:6px">
-      <div style="margin-top:10px"><button id="cloakApplyBtn" style="width:100%;padding:8px;cursor:pointer">Apply</button></div>
-    `;
-    document.body.appendChild(gui);
-    document.getElementById('cloakApplyBtn').onclick=()=>{
-      const title=document.getElementById('cloakTitleInput').value;
-      const iconSelect=document.getElementById('cloakIconSelect').value;
-      const iconInput=document.getElementById('cloakIconInput').value;
-      if(title) document.title=title;
-      const iconURL=iconInput||iconSelect;
-      if(iconURL){ let link=document.querySelector("link[rel*='icon']"); if(!link){ link=document.createElement('link'); link.rel='icon'; document.head.appendChild(link); } link.type='image/x-icon'; link.href=iconURL; }
-      gui.remove();
+    const wrapHistory = (obj, method) => {
+        const orig = obj[method];
+        obj[method] = function() {
+            const result = orig.apply(this, arguments);
+            setTimeout(removeAds, 60);
+            return result;
+        };
     };
+    wrapHistory(history, 'pushState');
+    wrapHistory(history, 'replaceState');
+
+    window.addEventListener('popstate', () => setTimeout(removeAds, 60));
+    setInterval(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            removeAds();
+        }
+    }, 300);
+
+    // Add Lunar Client style button
+    if (!document.getElementById('adBGoneBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'adBGoneBtn';
+        btn.innerText = '💥 Ad-B-Gone';
+
+        Object.assign(btn.style, {
+            position: 'fixed',
+            top: '10px',
+            right: '10px',
+            zIndex: 9999,
+            padding: '10px 16px',
+            background: '#1a1a1a',
+            color: '#00ffff',
+            border: '2px solid #00ffff',
+            borderRadius: '8px',
+            cursor: 'grab',
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 'bold',
+            boxShadow: '0 0 8px #00ffff, 0 0 16px #00ffff33',
+            transition: 'all 0.2s ease'
+        });
+
+        // Hover glow only (no scaling)
+        btn.onmouseover = () => {
+            btn.style.boxShadow = '0 0 12px #00ffff, 0 0 24px #00ffff66';
+        };
+        btn.onmouseout = () => {
+            btn.style.boxShadow = '0 0 8px #00ffff, 0 0 16px #00ffff33';
+        };
+
+        btn.onclick = removeAds;
+
+        // Draggable
+        let isDragging = false, offsetX = 0, offsetY = 0;
+        btn.onmousedown = e => {
+            isDragging = true;
+            offsetX = e.clientX - btn.offsetLeft;
+            offsetY = e.clientY - btn.offsetTop;
+            btn.style.cursor = 'grabbing';
+        };
+        document.onmousemove = e => {
+            if (isDragging) {
+                btn.style.left = e.clientX - offsetX + 'px';
+                btn.style.top = e.clientY - offsetY + 'px';
+            }
+        };
+        document.onmouseup = () => {
+            isDragging = false;
+            btn.style.cursor = 'grab';
+        };
+
+        document.body.appendChild(btn);
+    }
+}
+function dvdLogo() {
+  // helper for LCM
+  function LCM(a, b) {
+    function GCD(a, b) { return b === 0 ? a : GCD(b, a % b); }
+    return (a * b) / GCD(a, b);
   }
 
-  function pageMarker(){
-    if(pageMarkerInstance){
-      pageMarkerInstance.toggle();
-      return;
-    }
-    const canvas=document.createElement('canvas');
-    canvas.id='pmCanv';
-    Object.assign(canvas.style,{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',zIndex:2147483647,cursor:'crosshair'});
-    document.body.appendChild(canvas);
-    const ctx=canvas.getContext('2d');
-    let drawing=false, lastX=0,lastY=0,color='#00ffff',stack=[], erasing=false, brushSize=2, eraserRadius=12;
-    let panel=null;
-    function resize(){ canvas.width=innerWidth; canvas.height=innerHeight; }
-    resize();
-    addEventListener('resize',resize);
-    function start(e){ drawing=true; lastX=e.clientX; lastY=e.clientY; draw(e); }
-    function draw(e){
-      if(!drawing) return;
-      const x=e.clientX, y=e.clientY;
-      if (erasing) {
-        ctx.save();
-        ctx.globalCompositeOperation='destination-out';
+  const W = document.body.clientWidth;
+  const H = document.body.clientHeight;
+
+  // create DVD div
+  const dvd = document.createElement("div");
+  dvd.id = "dvd";
+  dvd.style.cssText = `
+    position:fixed;left:0;top:0;height:60px;width:136px;mask:url(https://upload.wikimedia.org/wikipedia/commons/9/9b/DVD_logo.svg);-webkit-mask:url(https://upload.wikimedia.org/wikipedia/commons/9/9b/DVD_logo.svg);background-repeat:no-repeat;background-size:75px;background-position:center;background-color:#f80;z-index:9999999999;
+  `;
+  document.body.insertBefore(dvd, document.body.firstChild);
+
+  // initial positions & settings
+  let x = Math.floor(Math.random() * (W - 100));
+  let y = Math.floor(Math.random() * (H - 50));
+  let dirX = 1, dirY = 1;
+  const speed = Math.max(2, Math.min(W, H) / 200);
+  const palette = ["#ff8800", "#e124ff", "#6a19ff", "#ff2188"];
+  let prevColorIndex = 0;
+  const dvdWidth = dvd.clientWidth;
+  const dvdHeight = dvd.clientHeight;
+  const d = LCM(W - dvdWidth, H - dvdHeight);
+  let steps = 0;
+
+  function getNewColor() {
+    const c = [...palette];
+    c.splice(prevColorIndex, 1);
+    const idx = Math.floor(Math.random() * c.length);
+    prevColorIndex = idx < prevColorIndex ? idx : idx + 1;
+    return c[idx];
+  }
+
+  function animate() {
+    if (y + dvdHeight >= H || y < 0) { dirY *= -1; dvd.style.backgroundColor = getNewColor(); }
+    if (x + dvdWidth >= W || x < 0) { dirX *= -1; dvd.style.backgroundColor = getNewColor(); }
+
+    x += dirX * speed;
+    y += dirY * speed;
+    dvd.style.left = x + "px";
+    dvd.style.top = y + "px";
+
+    steps++;
+    const remaining = d - steps;
+    if (remaining <= 0) steps = 0;
+
+    window.requestAnimationFrame(animate);
+  }
+
+  window.requestAnimationFrame(animate);
+
+  // key controls
+  document.addEventListener("keydown", e => {
+    if (!dvd) return;
+    if (e.key === "1") dvd.style.display = dvd.style.display === "none" ? "block" : "none";
+    if (e.key === "Escape") { dvd.remove(); dvdLogoSt = false; }
+  });
+}
+function openTabs(count) {
+  if (!count || isNaN(count) || count <= 0) return;
+  for (let i = 0; i < count; i++) {
+    window.open("about:blank", "_blank");
+  }
+}
+function pageMarker() {
+  if (window.__pageMarker) { window.__pageMarker.toggle(); return; }
+
+  let active = false, drawing = false, lastX = 0, lastY = 0, color = "#ff0000", size = 3, eraser = false;
+  const undoStack = [], maxUndo = 20;
+
+  const cvs = document.createElement("canvas");
+  cvs.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:999999;pointer-events:none;";
+  const ctx = cvs.getContext("2d");
+
+  function resize() { cvs.width = innerWidth; cvs.height = innerHeight; }
+  resize();
+  window.addEventListener("resize", resize);
+  document.body.appendChild(cvs);
+
+  function saveState() {
+    if (undoStack.length >= maxUndo) undoStack.shift();
+    undoStack.push(ctx.getImageData(0, 0, cvs.width, cvs.height));
+  }
+
+  function start(e) {
+    if (!active) return;
+    drawing = true;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    [lastX, lastY] = [x, y];
+    saveState();
+  }
+
+  function move(e) {
+    if (!drawing || !active) return;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = size;
+
+    if (eraser) {
+      ctx.globalCompositeOperation = "destination-out";
+      const dx = x - lastX, dy = y - lastY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const steps = Math.ceil(dist / (size / 2));
+      for (let i = 0; i <= steps; i++) {
+        const cx = lastX + dx * (i / steps);
+        const cy = lastY + dy * (i / steps);
         ctx.beginPath();
-        ctx.arc(x,y,eraserRadius,0,Math.PI*2,false);
+        ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
-        lastX=x; lastY=y;
-        return;
       }
-      ctx.save();
-      ctx.globalCompositeOperation='source-over';
-      ctx.strokeStyle=color;
-      ctx.lineWidth=brushSize;
-      ctx.lineJoin='round';
-      ctx.lineCap='round';
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = color;
       ctx.beginPath();
-      ctx.moveTo(lastX,lastY);
-      ctx.lineTo(x,y);
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
       ctx.stroke();
-      ctx.restore();
-      lastX=x; lastY=y;
     }
-    function stop(){ drawing=false; try{ stack.push(ctx.getImageData(0,0,canvas.width,canvas.height)); }catch(e){} }
-    canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',draw); canvas.addEventListener('mouseup',stop); canvas.addEventListener('mouseleave',stop);
-    const closeBtn=document.createElement('button');
-    closeBtn.textContent='✕'; Object.assign(closeBtn.style,{position:'fixed',top:'10px',right:'10px',zIndex:2147483648,padding:'6px 10px',background:'#111',color:'#0ff',border:'1px solid #0ff',borderRadius:'6px',cursor:'pointer'}); 
-    closeBtn.addEventListener('click',()=>{ canvas.remove(); closeBtn.remove(); pageMarkerInstance=null; pageMarkerSt=false; });
-    document.body.appendChild(closeBtn);
 
-    // extra handler so panel (if present) is also cleaned up
-    closeBtn.addEventListener('click',()=>{ if(panel){ panel.style.display='none'; if(panel.parentNode){ panel.parentNode.removeChild(panel); } panel=null; } });
-
-    // toolbar controls for drawing / erasing / clearing
-    panel=document.createElement('div');
-    Object.assign(panel.style,{
-      position:'fixed',
-      top:'10px',
-      left:'50%',
-      transform:'translateX(-50%)',
-      zIndex:2147483648,
-      display:'flex',
-      alignItems:'center',
-      gap:'6px',
-      padding:'6px 10px',
-      background:'rgba(0,0,0,0.85)',
-      color:'#0ff',
-      borderRadius:'999px',
-      fontFamily:'system-ui,-apple-system,\"Segoe UI\",sans-serif',
-      fontSize:'11px',
-      boxShadow:'0 0 8px rgba(0,255,255,0.5)'
-    });
-    function mkBtn(label){
-      const b=document.createElement('button');
-      b.textContent=label;
-      Object.assign(b.style,{
-        border:'none',
-        background:'transparent',
-        color:'#0ff',
-        padding:'4px 8px',
-        borderRadius:'999px',
-        cursor:'pointer',
-        fontSize:'11px'
-      });
-      panel.appendChild(b);
-      return b;
-    }
-    const penBtn=mkBtn('Pen');
-    const eraserBtn=mkBtn('Eraser');
-    const clearBtn=mkBtn('Clear');
-    const closePanelBtn=mkBtn('Close');
-    function updateMode(){
-      penBtn.style.background=erasing?'transparent':'#0ff';
-      penBtn.style.color=erasing?'#0ff':'#000';
-      eraserBtn.style.background=erasing?'#0ff':'transparent';
-      eraserBtn.style.color=erasing?'#000':'#0ff';
-      canvas.style.cursor=erasing?'cell':'crosshair';
-    }
-    penBtn.addEventListener('click',()=>{ erasing=false; brushSize=2; updateMode(); });
-    eraserBtn.addEventListener('click',()=>{ erasing=true; eraserRadius=12; updateMode(); });
-    clearBtn.addEventListener('click',()=>{ ctx.clearRect(0,0,canvas.width,canvas.height); });
-    closePanelBtn.addEventListener('click',()=>{ canvas.remove(); closeBtn.remove(); if(panel && panel.parentNode){ panel.parentNode.removeChild(panel); } panel=null; pageMarkerInstance=null; pageMarkerSt=false; });
-    document.body.appendChild(panel);
-    updateMode();
-
-    pageMarkerInstance={toggle:()=>{ if(canvas.style.display==='none'){ canvas.style.display='block'; closeBtn.style.display='block'; if(panel){ panel.style.display='flex'; } }else{ canvas.style.display='none'; closeBtn.style.display='none'; if(panel){ panel.style.display='none'; } } }};
+    [lastX, lastY] = [x, y];
   }
 
-  (function createFloatingMenu(){
-    const ID='Menu-M.M.'; const existing=document.getElementById(ID);
-    if(existing){ existing.style.display=existing.style.display==='none'?'block':'none'; return; }
-    const host=document.createElement('div'); host.id=ID; Object.assign(host.style,{position:'fixed',right:'16px',bottom:'16px',zIndex:2147483647});
-    document.documentElement.appendChild(host);
-    const shadow=host.attachShadow({mode:'open'});
-    const css=`:host{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
-      .card{width:260px;background:rgba(26,26,26,0.95);color:#00ffff;border-radius:12px;box-shadow:0 0 12px #00ffff22;padding:10px;backdrop-filter:blur(6px);border:1px solid rgba(0,255,255,0.12);}
-      .header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;cursor:grab;user-select:none;}
-      .title{font-weight:600;font-size:14px;color:#bff;}
-      .btn{display:block;width:100%;padding:8px 10px;margin:6px 0;border-radius:8px;cursor:pointer;border:1px solid rgba(0,255,255,0.12);background:#111;font-size:13px;text-align:left;color:#00ffff;box-shadow:0 0 6px #00ffff16;transition:all .12s ease;}
-      .btn:hover{box-shadow:0 0 12px #00ffff33;background:#1b1b1b;transform:translateY(-1px);}
-      .close-x{cursor:pointer;padding:4px 6px;border-radius:6px;background:transparent;border:none;font-weight:700;color:#00ffff;}
-    `;
-    const styleEl=document.createElement('style'); styleEl.textContent=css;
-    const wrapper=document.createElement('div'); wrapper.className='card';
-    wrapper.innerHTML=`<div class="header"><div class="title">Quick Menu</div><button class="close-x" title="Close">✕</button></div>
-      <button class="btn" id="btn-clicker">Auto Clicker</button>
-      <button class="btn" id="btn-ads">Remove all ads</button>
-      <button class="btn" id="btn-cloak">Cloaker</button>
-      <button class="btn" id="btn-dvd">A DVD Bounces around</button>
-      <button class="btn" id="btn-tab">Tab Opener</button>
-      <button class="btn" id="btn-marker">Draw on the Page</button>
-      <button class="btn" id="btn-scroll">Scroll to top</button>
-      <button class="btn" id="btn-dark">Toggle dark</button>
-    `;
-    shadow.appendChild(styleEl); shadow.appendChild(wrapper);
-    const $=sel=>shadow.querySelector(sel);
-    $('#btn-clicker').onclick=()=>{ if(!autoClickerSt){ autoClickerSt=true; autoClicker(); } };
-    $('#btn-marker').onclick=()=>{ if(!pageMarkerSt){ pageMarkerSt=true; pageMarker(); } else if (pageMarkerInstance && typeof pageMarkerInstance.toggle === 'function') { pageMarkerInstance.toggle(); } };
-    $('#btn-tab').onclick=async()=>{ const count=await lunarPrompt({title:'How many tabs do you want to open?',placeholder:'Type a number...'}); if(count) openTabs(Number(count)); };
-    $('#btn-cloak').onclick=()=>cloak();
-    $('#btn-dvd').onclick=()=>{ if(!dvdLogoSt){ dvdLogoSt=true; dvdLogo(); } };
-    $('#btn-ads').onclick=()=>{ if(!adBGoneSt){ adBGoneSt=true; adBGone(); } };
-    $('#btn-scroll').onclick=()=>scrollTo({top:0,behavior:'smooth'});
-    let dark=false; $('#btn-dark').onclick=()=>{ dark=!dark; wrapper.style.background=dark?'rgba(6,6,6,0.95)':'rgba(26,26,26,0.95)'; wrapper.style.border='1px solid rgba(0,255,255,0.12)'; };
-    // drag guard + logic
-    let dragging = false;
-    let dragStartTime = 0;
-    const dragDebounceMs = 200; // ignore close clicks that happen within this time after drag start
-    // Close button: only remove when NOT dragging (or if drag was long enough ago)
-    const closeBtn = shadow.querySelector('.close-x');
-    closeBtn.addEventListener('click', (ev) => {
-      // If we recently started a drag, ignore this click (user was dragging)
-      if (dragging && (Date.now() - dragStartTime) < dragDebounceMs) {
-        return;
-      }
-      host.remove();
-    });
-    // Use composedPath to detect if pointerdown started on close button (handles shadow DOM correctly)
-    wrapper.addEventListener('pointerdown', (e) => {
-      const path = e.composedPath ? e.composedPath() : [e.target];
-      if (path.some(n => n && n.classList && n.classList.contains && n.classList.contains('close-x'))) return;
-      dragging = true;
-      dragStartTime = Date.now();
-      const rect = host.getBoundingClientRect();
-      host._dragStart = { startX: e.clientX, startY: e.clientY, startRight: innerWidth - rect.right, startBottom: innerHeight - rect.bottom };
-      try { wrapper.setPointerCapture && wrapper.setPointerCapture(e.pointerId); } catch (err) {}
-    });
+  function end() { drawing = false; }
 
-    wrapper.addEventListener('pointermove', (e) => {
-      if (!dragging || !host._dragStart) return;
-      const s = host._dragStart;
-      host.style.right = Math.max(0, innerWidth - e.clientX + s.startX - s.startRight) + 'px';
-      host.style.bottom = Math.max(0, innerHeight - e.clientY + s.startY - s.startBottom) + 'px';
-    });
-    function endDrag(e) {
-      if (!dragging) return;
-      dragging = false;
-      host._dragStart = null;
-      try { wrapper.releasePointerCapture && wrapper.releasePointerCapture(e && e.pointerId); } catch (err) {}
-      // small delay to ensure accidental immediate click is ignored by close button
-      setTimeout(() => { /* noop: debounce window */ }, dragDebounceMs);
+  // mouse events
+  cvs.addEventListener("mousedown", start);
+  cvs.addEventListener("mousemove", move);
+  cvs.addEventListener("mouseup", end);
+  cvs.addEventListener("mouseleave", end);
+
+  // touch events
+  cvs.addEventListener("touchstart", start);
+  cvs.addEventListener("touchmove", move);
+  cvs.addEventListener("touchend", end);
+
+  // Lunar Client–style toolbar
+  const bar = document.createElement("div");
+  bar.innerHTML = `
+    <button id="pm-toggle">🖊️</button>
+    <button id="pm-eraser">🩹</button>
+    <input type="color" id="pm-color" value="#ff0000">
+    <input type="range" id="pm-size" min="1" max="20" value="3">
+    <button id="pm-undo">↩️</button>
+    <button id="pm-clear">🧹</button>
+    <button id="pm-exit">❌</button>
+  `;
+  Object.assign(bar.style, {
+    position: "fixed",
+    bottom: "10px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "#1a1a1a",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    zIndex: 1000000,
+    display: "flex",
+    gap: "6px",
+    boxShadow: "0 0 10px #00ffff55",
+    cursor: "grab",
+    userSelect: "none"
+  });
+  document.body.appendChild(bar);
+
+  // draggable toolbar
+  let isDragging = false, offsetX = 0, offsetY = 0;
+  bar.onmousedown = e => { isDragging = true; offsetX = e.clientX - bar.offsetLeft; offsetY = e.clientY - bar.offsetTop; bar.style.cursor = "grabbing"; };
+  document.onmousemove = e => { if (isDragging) { bar.style.left = e.clientX - offsetX + "px"; bar.style.top = e.clientY - offsetY + "px"; } };
+  document.onmouseup = () => { isDragging = false; bar.style.cursor = "grab"; };
+
+  bar.querySelector("#pm-toggle").onclick = () => { active = !active; cvs.style.pointerEvents = active ? "auto" : "none"; };
+  bar.querySelector("#pm-eraser").onclick = () => { eraser = !eraser; bar.querySelector("#pm-eraser").style.background = eraser ? "#555" : ""; };
+  bar.querySelector("#pm-color").oninput = e => color = e.target.value;
+  bar.querySelector("#pm-size").oninput = e => size = +e.target.value;
+  bar.querySelector("#pm-clear").onclick = () => ctx.clearRect(0, 0, cvs.width, cvs.height);
+  bar.querySelector("#pm-undo").onclick = () => { if (undoStack.length) ctx.putImageData(undoStack.pop(), 0, 0); };
+  bar.querySelector("#pm-exit").onclick = () => { window.removeEventListener("resize", resize); document.removeEventListener("keydown", keyHandler); cvs.remove(); bar.remove(); delete window.__pageMarker; };
+
+  function keyHandler(e) {
+    if (e.ctrlKey && e.key === "z") bar.querySelector("#pm-undo").click();
+    if (e.key.toLowerCase() === "e") bar.querySelector("#pm-eraser").click();
+    if (e.key.toLowerCase() === "c") bar.querySelector("#pm-clear").click();
+    if (e.key.toLowerCase() === "p") bar.querySelector("#pm-toggle").click();
+  }
+  document.addEventListener("keydown", keyHandler);
+
+  window.__pageMarker = { toggle: () => { active = !active; cvs.style.pointerEvents = active ? "auto" : "none"; } };
+}
+function cloakPage(newTitle = "Google", newFavicon = "https://www.google.com/favicon.ico") {
+  const w = window.open("about:blank", "_blank");
+
+  if (!w) return;
+
+  // Load the current page inside the new window
+  w.document.write(`
+    <head>
+      <title>${newTitle}</title>
+      <link rel="icon" href="${newFavicon}">
+    </head>
+    <body style="margin:0;overflow:hidden;">
+      <iframe src="${location.href}"
+        style="position:fixed;top:0;left:0;width:100vw;height:100vh;border:0;">
+      </iframe>
+    </body>
+  `);
+}
+
+(function createFloatingMenu() {
+  const ID = 'Menu-M.M.';
+  const existing = document.getElementById(ID);
+  if (existing) { existing.style.display = existing.style.display === 'none' ? 'block' : 'none'; return; }
+
+  const host = document.createElement('div');
+  host.id = ID;
+  Object.assign(host.style, {
+    position: 'fixed',
+    right: '16px',
+    bottom: '16px',
+    zIndex: 2147483647,
+  });
+  document.documentElement.appendChild(host);
+
+  const shadow = host.attachShadow({ mode: 'open' });
+
+  const css = `
+    :host { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; }
+    .card {
+      width: 260px;
+      background: rgba(26,26,26,0.95);
+      color: #00ffff;
+      border-radius: 12px;
+      box-shadow: 0 0 12px #00ffff55;
+      padding: 10px;
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(0,255,255,0.2);
     }
-    wrapper.addEventListener('pointerup', endDrag);
-    wrapper.addEventListener('pointercancel', endDrag);
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      cursor: grab;
+      user-select: none;
+    }
+    .title { font-weight: 600; font-size: 14px; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 8px 10px;
+      margin: 6px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid rgba(0,255,255,0.2);
+      background: #111;
+      font-size: 13px;
+      text-align: left;
+      color: #00ffff;
+      box-shadow: 0 0 6px #00ffff33;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { box-shadow: 0 0 12px #00ffff55; background: #222; }
+    .btn:active { transform: translateY(1px); }
+    .small { font-size: 12px; color: #555; margin-top: 6px; }
+    .close-x {
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      font-weight: 700;
+      color: #00ffff;
+    }
+    .close-x:hover { color: #fff; }
+  `;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'card';
+  wrapper.innerHTML = `
+    <div class="header"><div class="title">Quick Menu</div><button class="close-x" title="Close">✕</button></div>
+    <button class="btn" id="btn-clicker">Auto Clicker</button>
+    <button class="btn" id="btn-ads">Remove all ads</button>
+    <button class="btn" id="btn-dvd">A DVD Bounces around</button>
+    <button class="btn" id="btn-tab">Tab Opener</button>
+    <button class="btn" id="btn-marker">Draw on the Page</button>
+    <button class="btn" id="btn-cloak">Hide the current tab</button>
+    <button class="btn" id="btn-scroll">Scroll to top</button>
+    <button class="btn" id="btn-dark">Toggle dark</button>
+  `;
+
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  shadow.appendChild(styleEl);
+  shadow.appendChild(wrapper);
+
+  const $ = sel => shadow.querySelector(sel);
+
+  $('#btn-clicker').onclick = () => { if (!window.autoClickerSt) { window.autoClickerSt = true; autoClicker(); } };
+  $('#btn-marker').onclick = () => { if (!window.pageMarkerSt) { window.pageMarkerSt = true; pageMarker(); } };
+  $('#btn-tab').onclick = () => openTabs(prompt('How many tabs do you want to open?'));
+  $('#btn-dvd').onclick = () => { if (!window.dvdLogoSt) { window.dvdLogoSt = true; dvdLogo(); } };
+  $('#btn-ads').onclick = () => { if (!window.adBGoneSt) { window.adBGoneSt = true; adBGone(); } };
+  $('#btn-scroll').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  $('#btn-cloak').onclick = () => cloakPage();
+
+  let dark = false;
+  $('#btn-dark').onclick = () => {
+    dark = !dark;
+    const card = wrapper;
+    if (dark) {
+      card.style.background = 'rgba(10,10,10,0.95)';
+      card.style.color = '#00ffff';
+      card.style.border = '1px solid rgba(0,255,255,0.2)';
+    } else {
+      card.style.background = 'rgba(26,26,26,0.95)';
+      card.style.color = '#00ffff';
+      card.style.border = '1px solid rgba(0,255,255,0.2)';
+    }
+  };
+
+  $('.close-x').onclick = () => host.remove();
+
+  (function enableDrag() {
+    const el = wrapper;
+    let isDown = false, startX = 0, startY = 0, origRight = 0, origBottom = 0;
+    el.addEventListener('mousedown', e => {
+      const headerClicked = e.composedPath().some(node => node.classList && node.classList.contains && node.classList.contains('header'));
+      if (!headerClicked) return;
+      isDown = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      origRight = parseFloat(getComputedStyle(host).right) || 16;
+      origBottom = parseFloat(getComputedStyle(host).bottom) || 16;
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+      if (!isDown) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      host.style.right = (origRight - dx) + 'px';
+      host.style.bottom = (origBottom - dy) + 'px';
+    });
+    window.addEventListener('mouseup', () => { isDown = false; });
   })();
+
+  shadow.querySelector('.btn').focus();
+  setTimeout(() => { try { host.remove(); } catch(e){} }, 120000);
+})();
